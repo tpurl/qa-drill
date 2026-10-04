@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Q&amp;A Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEEC; --card:#FFFFFF; --ink:#1F2A33; --muted:#5B6873; --rule:#C9D6E8;
+  --accent:#2453A6; --accent-ink:#FFFFFF; --ok:#2E7D4F; --ok-bg:#DDF0E4; --bad:#B3412E; --bad-bg:#F6DFD9;
+  --sel:#DCE6F7; --shadow:0 1px 0 #C3CCD3, 0 6px 18px -10px rgba(31,42,51,.35);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161C21; --card:#212A31; --ink:#E6ECEF; --muted:#9AA7B1; --rule:#34465C;
+    --accent:#7FA6EC; --accent-ink:#0F1A2B; --ok:#7CCB98; --ok-bg:#1E3828; --bad:#EE9583; --bad-bg:#43241F;
+    --sel:#2B3D57; --shadow:0 1px 0 #0E1317, 0 6px 18px -10px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161C21; --card:#212A31; --ink:#E6ECEF; --muted:#9AA7B1; --rule:#34465C;
+  --accent:#7FA6EC; --accent-ink:#0F1A2B; --ok:#7CCB98; --ok-bg:#1E3828; --bad:#EE9583; --bad-bg:#43241F;
+  --sel:#2B3D57; --shadow:0 1px 0 #0E1317, 0 6px 18px -10px rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque","Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.15;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+header.top{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:16px}
+header.top h1{font-size:clamp(28px,6vw,40px);font-weight:700;letter-spacing:-.02em}
+.listpick{display:flex;align-items:center;gap:8px;flex:1;min-width:220px}
+.listpick select{flex:1;max-width:320px;font-weight:700}
+.listpick .count{color:var(--muted);font-size:15px;white-space:nowrap}
+nav.tabs{display:flex;gap:4px;border-bottom:2px solid var(--rule);margin-bottom:20px;overflow-x:auto}
+nav.tabs button{appearance:none;border:0;background:none;color:var(--muted);font:inherit;font-weight:700;padding:10px 12px;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{appearance:none;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{border-color:var(--rule);background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--card);border-radius:10px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px}
+label.fld{display:block;font-weight:700;margin-bottom:6px}
+textarea,input[type=text],select{width:100%;background:var(--bg);border:2px solid var(--rule);border-radius:8px;padding:10px 12px}
+select{width:auto}
+textarea{min-height:150px;resize:vertical;line-height:1.5}
+.hint{color:var(--muted);font-size:15px;margin:6px 0 12px}
+.hint code{background:var(--bg);padding:1px 5px;border-radius:4px}
+.opts{display:flex;gap:10px 18px;flex-wrap:wrap;margin-bottom:14px}
+.opts label{display:flex;flex-direction:column;gap:4px;font-size:15px;color:var(--muted)}
+.opts label.check{flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.opts select{color:var(--ink)}
+ol.cards{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ol.cards li{background:var(--card);border-radius:8px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;padding:12px 14px}
+ol.cards .n{grid-row:1/span 2;color:var(--muted);font-size:14px;min-width:22px;padding-top:2px}
+ol.cards .q{font-weight:700;overflow-wrap:anywhere}
+ol.cards .a{color:var(--muted);grid-column:2;overflow-wrap:anywhere}
+ol.cards .acts{grid-row:1/span 2;grid-column:3;display:flex;gap:4px;align-items:start}
+.icon{appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;font-size:14px;font-weight:700}
+.icon:hover{background:var(--bg);color:var(--ink)}
+ol.cards li.editing{display:block}
+ol.cards li.editing input{margin-bottom:8px}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.progress{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .25s}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:15px;margin-bottom:8px}
+.prompt{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(21px,4.6vw,28px);font-weight:500;line-height:1.25;margin:4px 0 18px;overflow-wrap:anywhere}
+.choices{display:grid;gap:10px}
+.choice{appearance:none;text-align:left;display:flex;gap:12px;align-items:flex-start;background:var(--bg);border:2px solid var(--rule);border-radius:8px;padding:12px 14px;cursor:pointer;overflow-wrap:anywhere}
+.choice .k{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--muted);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.choice:hover:not(:disabled){border-color:var(--accent)}
+.choice:disabled{cursor:default}
+.choice.right{border-color:var(--ok);background:var(--ok-bg)}
+.choice.right .k{border-color:var(--ok);color:var(--ok)}
+.choice.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.choice.wrong .k{border-color:var(--bad);color:var(--bad)}
+.feedback{min-height:28px;margin:14px 0 6px;font-weight:700}
+.feedback.ok{color:var(--ok)} .feedback.bad{color:var(--bad)}
+.big{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:56px;font-weight:700;line-height:1}
+ul.missed{padding-left:20px} ul.missed li{margin-bottom:8px} ul.missed .a{color:var(--muted)}
+/* spelling */
+.speak{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px}
+.sayBtn{appearance:none;display:flex;align-items:center;gap:10px;border:2px solid var(--accent);background:var(--sel);color:var(--ink);border-radius:999px;padding:12px 22px;font-weight:700;font-size:19px;cursor:pointer}
+.sayBtn svg{width:24px;height:24px;flex:none}
+.sayBtn.small{font-size:16px;padding:9px 16px;background:transparent;border-color:var(--rule)}
+.sayBtn.small svg{width:18px;height:18px}
+input.spell{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:28px;font-weight:500;letter-spacing:.04em;padding:12px 14px;text-align:center}
+input.spell.ok{border-color:var(--ok);background:var(--ok-bg)}
+input.spell.bad{border-color:var(--bad);background:var(--bad-bg)}
+.pad{display:grid;gap:6px;margin:14px 0 4px;user-select:none;-webkit-user-select:none}
+.pad .prow{display:flex;gap:5px;justify-content:center}
+.pad button{appearance:none;flex:0 1 10%;min-width:0;height:50px;border:0;border-radius:7px;background:var(--bg);color:var(--ink);font-size:21px;font-weight:700;box-shadow:0 2px 0 var(--rule);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pad button:active{background:var(--sel);transform:translateY(1px);box-shadow:none}
+.pad button.wide{flex:0 1 22%;font-size:16px}
+.pad button.space{flex:0 1 40%;font-size:16px;color:var(--muted)}
+.pad button:disabled{opacity:.4}
+.word{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(40px,11vw,64px);font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:6px 0 8px;overflow-wrap:anywhere}
+.pron{margin:0 0 4px;font-size:20px}
+.pron .lbl{color:var(--muted);font-size:15px;display:inline-block;min-width:92px}
+.pron .syl{font-weight:700;letter-spacing:.03em}
+.pron .snd b{color:var(--accent)}
+.pron .guess{color:var(--muted);font-size:14px}
+ol.cards .p{grid-column:2;font-size:14px;color:var(--muted)}
+ol.cards .p b{color:var(--ink)}
+.sayBtn.mic.on{border-color:var(--bad);background:var(--bad-bg)}
+.sayBtn:disabled{opacity:.45;cursor:not-allowed}
+mark.ph{background:var(--sel);color:inherit;border-radius:3px;padding:0 1px;box-shadow:inset 0 -3px 0 var(--accent)}
+.blank{display:inline-block;border-bottom:5px solid var(--accent);margin:0 3px;vertical-align:baseline}
+.phWord{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(40px,11vw,60px);font-weight:700;letter-spacing:.03em;line-height:1.15;margin:6px 0 6px;overflow-wrap:anywhere}
+.phBox{margin-top:10px;font-weight:400;color:var(--ink)}
+.phBox .phWord{font-size:30px;margin:2px 0}
+ul.phList{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px;font-size:16px}
+ul.phList b{color:var(--accent)}
+ul.phList .tip{color:var(--muted);display:block;font-size:15px}
+.choice.letters{justify-content:flex-start;align-items:center}
+.choice.letters span:last-child{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em}
+.defn{background:var(--bg);border-left:4px solid var(--rule);padding:8px 12px;border-radius:4px;margin:0 0 14px;color:var(--ink)}
+.reveal{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:.04em;color:var(--ok)}
+/* match */
+.board{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col{display:grid;gap:10px;align-content:start}
+.tile{appearance:none;text-align:left;background:var(--card);border:2px solid var(--rule);border-radius:8px;padding:10px 12px;cursor:pointer;box-shadow:var(--shadow);font-size:15px;line-height:1.35;overflow-wrap:anywhere;min-height:52px;transition:background .15s,border-color .15s,opacity .3s}
+.tile.q{font-weight:700}
+.tile.sel{border-color:var(--accent);background:var(--sel)}
+.tile.done{border-color:var(--ok);background:var(--ok-bg);cursor:default;opacity:.6;box-shadow:none}
+.tile.miss{border-color:var(--bad);background:var(--bad-bg);animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.stats{display:flex;gap:18px;color:var(--muted);font-size:15px;margin-bottom:12px;flex-wrap:wrap}
+.stats b{color:var(--ink)}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Q&amp;A Drill</h1>
+    <div class="listpick">
+      <select id="setSel" aria-label="Current list"></select>
+      <span class="count" id="count"></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="edit" aria-selected="true">Questions</button>
+    <button role="tab" data-tab="spell" aria-selected="false">Spelling</button>
+    <button role="tab" data-tab="say" aria-selected="false">Pronounce</button>
+    <button role="tab" data-tab="phon" aria-selected="false">Patterns</button>
+    <button role="tab" data-tab="quiz" aria-selected="false">Multiple choice</button>
+    <button role="tab" data-tab="match" aria-selected="false">Matching</button>
+  </nav>
+
+  <!-- QUESTIONS -->
+  <section id="tab-edit">
+    <div class="row" style="margin-bottom:16px">
+      <button class="btn quiet" id="newList">New list</button>
+      <button class="btn quiet" id="renameList">Rename list</button>
+      <button class="btn quiet" id="deleteList">Delete list</button>
+    </div>
+
+    <div class="panel">
+      <label class="fld" for="bulk">Paste questions and answers</label>
+      <p class="hint">One pair per line, separated by a tab, <code>|</code> or <code>::</code>. Copying two columns out of Excel works as-is. Lines with no separator are read as question, answer, question, answer… For spelling, put the word first and the definition second. You can add two optional columns for pronunciation: syllables and how it sounds, like <code>necessary | needed | nec-es-sar-y | NESS-uh-sair-ee</code></p>
+      <textarea id="bulk" placeholder="necessary | needed; required&#10;rhythm | a regular, repeated pattern of sound"></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="addBulk">Add to list</button>
+        <button class="btn quiet" id="states">Load states and capitals</button>
+        <button class="btn quiet" id="spellSample">Load spelling words</button>
+      </div>
+      <p class="hint" id="bulkMsg" aria-live="polite" style="margin-bottom:0"></p>
+    </div>
+
+    <div class="panel">
+      <label class="fld" for="oneQ">Add one</label>
+      <input type="text" id="oneQ" placeholder="Question or word" style="margin-bottom:8px">
+      <input type="text" id="oneA" placeholder="Answer or definition" style="margin-bottom:8px">
+      <div class="row" style="flex-wrap:nowrap">
+        <input type="text" id="oneS" placeholder="Syllables (optional), e.g. nec-es-sar-y">
+        <input type="text" id="oneN" placeholder="Sounds like (optional), e.g. NESS-uh-sair-ee">
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="addOne">Add</button></div>
+    </div>
+
+    <div class="row" style="justify-content:space-between;margin:6px 0 12px">
+      <h2 style="font-size:22px" id="listTitle">Your list</h2>
+      <div class="row">
+        <button class="btn quiet" id="exportBtn">Export</button>
+        <button class="btn quiet" id="importBtn">Import</button>
+        <button class="btn quiet" id="clearBtn">Clear all</button>
+        <input type="file" id="importFile" accept=".json,.txt,.csv,.tsv" hidden>
+      </div>
+    </div>
+    <ol class="cards" id="list"></ol>
+  </section>
+
+  <!-- SPELLING -->
+  <section id="tab-spell" hidden>
+    <div class="panel" id="spellSetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Spelling</h2>
+      <p class="hint">The page says each word out loud in a random order and you type it. The word comes from the first column of the list; the second column is used as the definition.</p>
+      <div class="opts">
+        <label>Use <select class="range"></select></label>
+        <label>Voice speed
+          <select id="rate"><option value="0.95">Normal</option><option value="0.7">Slow</option></select>
+        </label>
+        <label class="check"><input type="checkbox" id="readDef" checked> Read the definition after the word</label>
+        <label class="check"><input type="checkbox" id="usePad"> Use on-screen letter pad (no phone keyboard)</label>
+      </div>
+      <button class="btn" id="startSpell">Start spelling</button>
+      <p class="hint" id="spellNeed" style="margin-bottom:0"></p>
+    </div>
+
+    <div class="panel" id="spellRun" hidden>
+      <div class="progress"><span id="sBar"></span></div>
+      <div class="meta"><span id="sPos"></span><span id="sScore"></span></div>
+      <div class="speak">
+        <button class="sayBtn" id="sayWord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>Say the word</button>
+        <button class="sayBtn small" id="saySlowS">Slowly, by syllable</button>
+        <button class="sayBtn small" id="sayDef"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>Definition</button>
+        <button class="sayBtn small" id="showDef">Show definition</button>
+      </div>
+      <p class="defn" id="sDef" hidden></p>
+      <p class="hint" id="noVoice" hidden>This browser can't speak, so the definition is shown as the clue.</p>
+      <input type="text" class="spell" id="sInput" name="sp-word" placeholder="Type the word" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" writingsuggestions="false" aria-autocomplete="none" data-lpignore="true" data-1p-ignore="true" data-form-type="other" aria-label="Your spelling">
+      <div class="pad" id="pad" hidden></div>
+      <div class="feedback" id="sFeedback" aria-live="polite"></div>
+      <div class="phBox" id="sPh" hidden></div>
+      <div class="row">
+        <button class="btn" id="sCheck">Check spelling</button>
+        <button class="btn" id="sNext" hidden>Next word</button>
+        <button class="btn quiet" id="sQuit">End spelling</button>
+      </div>
+      <p class="hint" style="margin:12px 0 0">Press Enter to check, then Enter again for the next word. You get two tries.</p>
+    </div>
+
+    <div class="panel" id="spellDone" hidden>
+      <div class="big" id="sdScore"></div>
+      <p id="sdLine" style="margin:8px 0 16px"></p>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="sRetryMissed">Retry missed</button>
+        <button class="btn ghost" id="spellStepUp" hidden></button>
+        <button class="btn ghost" id="sAgain">Start again</button>
+      </div>
+      <div id="sMissedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Missed</h3><ul class="missed" id="sMissedList"></ul></div>
+    </div>
+  </section>
+
+  <!-- PRONOUNCE -->
+  <section id="tab-say" hidden>
+    <div class="panel" id="saySetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Pronunciation</h2>
+      <p class="hint">Each word is shown with its syllables and how it sounds. Listen at normal speed or one syllable at a time, then say it yourself and the page checks what it heard.</p>
+      <div class="opts">
+        <label>Use <select class="range"></select></label>
+        <label class="check"><input type="checkbox" id="showSnd" checked> Show the "sounds like" spelling</label>
+      </div>
+      <button class="btn" id="startSay">Start practice</button>
+      <p class="hint" id="sayNeed" style="margin-bottom:0"></p>
+      <p class="hint" id="noMic" hidden style="margin-bottom:0">Speaking practice needs Chrome (or Safari) and a microphone. Listening and syllables still work here.</p>
+      <p class="hint" id="fileMic" hidden style="margin-bottom:0">This page was opened as a file, so Chrome won't let it use the microphone. To practice speaking, close this tab and double-click <strong>Start Q&amp;A Drill</strong> in the same folder instead.</p>
+    </div>
+
+    <div class="panel" id="sayRun" hidden>
+      <div class="progress"><span id="pBar"></span></div>
+      <div class="meta"><span id="pPos"></span><span id="pScore"></span></div>
+      <div class="word" id="pWord"></div>
+      <p class="pron"><span class="lbl">Syllables</span> <span class="syl" id="pSyl"></span></p>
+      <p class="pron" id="pSndRow"><span class="lbl">Sounds like</span> <span class="snd" id="pSnd"></span></p>
+      <ul class="phList" id="pPh"></ul>
+      <p class="hint" id="pDef" style="margin:8px 0 0"></p>
+      <div class="speak" style="margin-top:16px">
+        <button class="sayBtn" id="pHear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>Hear it</button>
+        <button class="sayBtn small" id="pSlow">Slowly, by syllable</button>
+        <button class="sayBtn mic" id="pMic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>Say it</span></button>
+      </div>
+      <div class="feedback" id="pFeedback" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="pNext">Next word</button>
+        <button class="btn quiet" id="pQuit">End practice</button>
+      </div>
+    </div>
+
+    <div class="panel" id="sayDone" hidden>
+      <div class="big" id="pdScore"></div>
+      <p id="pdLine" style="margin:8px 0 16px"></p>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="pRetryMissed">Retry missed</button>
+        <button class="btn ghost" id="sayStepUp" hidden></button>
+        <button class="btn ghost" id="pAgain">Start again</button>
+      </div>
+      <div id="pMissedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Keep practicing</h3><ul class="missed" id="pMissedList"></ul></div>
+    </div>
+  </section>
+
+  <!-- PATTERNS (phonics) -->
+  <section id="tab-phon" hidden>
+    <div class="panel" id="phSetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Spelling patterns</h2>
+      <p class="hint">Each word has a tricky part blanked out, like rec__ve. Listen to the word, pick the letters that fill the gap, and see which sound pattern it follows.</p>
+      <div class="opts">
+        <label>Use <select class="range"></select></label>
+        <label>Pattern <select id="phGroup"></select></label>
+        <label class="check"><input type="checkbox" id="phSay" checked> Say each word</label>
+      </div>
+      <button class="btn" id="startPh">Start patterns</button>
+      <p class="hint" id="phNeed" style="margin-bottom:0"></p>
+    </div>
+
+    <div class="panel" id="phRun" hidden>
+      <div class="progress"><span id="hBar"></span></div>
+      <div class="meta"><span id="hPos"></span><span id="hScore"></span></div>
+      <div class="phWord" id="hWord"></div>
+      <p class="hint" id="hDef" style="margin:0 0 12px"></p>
+      <div class="speak" style="margin:0 0 14px">
+        <button class="sayBtn small" id="hHear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>Hear it</button>
+        <button class="sayBtn small" id="hSlow">Slowly, by syllable</button>
+      </div>
+      <div class="choices" id="hChoices"></div>
+      <div class="feedback" id="hFeedback" aria-live="polite"></div>
+      <div class="phBox" id="hPh" hidden></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="hNext" disabled>Next</button>
+        <button class="btn quiet" id="hQuit">End patterns</button>
+      </div>
+    </div>
+
+    <div class="panel" id="phDone" hidden>
+      <div class="big" id="hdScore"></div>
+      <p id="hdLine" style="margin:8px 0 16px"></p>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="hRetryMissed">Retry missed</button>
+        <button class="btn ghost" id="phStepUp" hidden></button>
+        <button class="btn ghost" id="hAgain">Start again</button>
+      </div>
+      <div id="hMissedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Missed</h3><ul class="phList" id="hMissedList"></ul></div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="tab-quiz" hidden>
+    <div class="panel" id="quizSetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Multiple choice</h2>
+      <p class="hint">Questions come in a random order. Wrong choices are pulled from the other answers in your list.</p>
+      <div class="opts">
+        <label>Use <select class="range"></select></label>
+        <label>Choices per question
+          <select id="nChoices"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+        </label>
+        <label>Show
+          <select id="direction">
+            <option value="qa">first column, pick the second</option>
+            <option value="aq">second column, pick the first</option>
+          </select>
+        </label>
+      </div>
+      <button class="btn" id="startQuiz">Start quiz</button>
+      <p class="hint" id="quizNeed" style="margin-bottom:0"></p>
+    </div>
+
+    <div class="panel" id="quizRun" hidden>
+      <div class="progress"><span id="qBar"></span></div>
+      <div class="meta"><span id="qPos"></span><span id="qScore"></span></div>
+      <div class="prompt" id="qPrompt"></div>
+      <div class="choices" id="qChoices"></div>
+      <div class="feedback" id="qFeedback" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn" id="qNext" disabled>Next question</button>
+        <button class="btn quiet" id="qQuit">End quiz</button>
+      </div>
+      <p class="hint" style="margin:12px 0 0">Keys: 1–6 to choose, Enter for next.</p>
+    </div>
+
+    <div class="panel" id="quizDone" hidden>
+      <div class="big" id="dScore"></div>
+      <p id="dLine" style="margin:8px 0 16px"></p>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="retryMissed">Retry missed</button>
+        <button class="btn ghost" id="quizStepUp" hidden></button>
+        <button class="btn ghost" id="retryAll">Start a new quiz</button>
+      </div>
+      <div id="missedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Missed</h3><ul class="missed" id="missedList"></ul></div>
+    </div>
+  </section>
+
+  <!-- MATCH -->
+  <section id="tab-match" hidden>
+    <div class="panel" id="matchSetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Matching</h2>
+      <p class="hint">Tap an item on the left, then the one on the right that goes with it. The list is shuffled and played in rounds.</p>
+      <div class="opts">
+        <label>Use <select class="range"></select></label>
+        <label>Pairs per round
+          <select id="roundSize"><option>4</option><option selected>6</option><option>8</option><option>10</option></select>
+        </label>
+      </div>
+      <button class="btn" id="startMatch">Start matching</button>
+      <p class="hint" id="matchNeed" style="margin-bottom:0"></p>
+    </div>
+
+    <div id="matchRun" hidden>
+      <div class="stats">
+        <span>Round <b id="mRound"></b></span>
+        <span>Matched <b id="mMatched"></b></span>
+        <span>Misses <b id="mMiss">0</b></span>
+        <span>Time <b id="mTime">0:00</b></span>
+      </div>
+      <div class="board">
+        <div class="col" id="colQ"></div>
+        <div class="col" id="colA"></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn" id="mNext" hidden>Next round</button>
+        <button class="btn quiet" id="mQuit">End matching</button>
+      </div>
+    </div>
+
+    <div class="panel" id="matchDone" hidden>
+      <div class="big" id="mdTime"></div>
+      <p id="mdLine" style="margin:8px 0 16px"></p>
+      <div class="row">
+        <button class="btn" id="mAgain">Play again</button>
+        <button class="btn ghost" id="matchStepUp" hidden></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const KEY = 'qa-drill-v2', OLD = 'qa-drill-v1';
+  const $ = id => document.getElementById(id);
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const shuffle = arr => { const a = arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const STATES = [['Alabama','Montgomery'],['Alaska','Juneau'],['Arizona','Phoenix'],['Arkansas','Little Rock'],['California','Sacramento'],['Colorado','Denver'],['Connecticut','Hartford'],['Delaware','Dover'],['Florida','Tallahassee'],['Georgia','Atlanta'],['Hawaii','Honolulu'],['Idaho','Boise'],['Illinois','Springfield'],['Indiana','Indianapolis'],['Iowa','Des Moines'],['Kansas','Topeka'],['Kentucky','Frankfort'],['Louisiana','Baton Rouge'],['Maine','Augusta'],['Maryland','Annapolis'],['Massachusetts','Boston'],['Michigan','Lansing'],['Minnesota','Saint Paul'],['Mississippi','Jackson'],['Missouri','Jefferson City'],['Montana','Helena'],['Nebraska','Lincoln'],['Nevada','Carson City'],['New Hampshire','Concord'],['New Jersey','Trenton'],['New Mexico','Santa Fe'],['New York','Albany'],['North Carolina','Raleigh'],['North Dakota','Bismarck'],['Ohio','Columbus'],['Oklahoma','Oklahoma City'],['Oregon','Salem'],['Pennsylvania','Harrisburg'],['Rhode Island','Providence'],['South Carolina','Columbia'],['South Dakota','Pierre'],['Tennessee','Nashville'],['Texas','Austin'],['Utah','Salt Lake City'],['Vermont','Montpelier'],['Virginia','Richmond'],['Washington','Olympia'],['West Virginia','Charleston'],['Wisconsin','Madison'],['Wyoming','Cheyenne']];
+  const SPELLING = [['necessary','needed; required'],['separate','to set apart or divide'],['believe','to accept something as true'],['receive','to get or be given something'],['beautiful','very pleasing to look at'],['friend','a person you like and trust'],['because','for the reason that'],['different','not the same'],['especially','more than usual; particularly'],['favorite','liked more than all the others'],['library','a place that keeps books for people to borrow'],['neighbor','a person who lives near you'],['restaurant','a place where you buy and eat meals'],['calendar','a chart of the days, weeks, and months of a year'],['surprise','something you did not expect'],['knowledge','what you know or have learned'],['weird','strange or unusual'],['government','the group of people who run a country or state'],['environment','the natural world around us'],['tomorrow','the day after today'],['vacuum','a space with nothing in it, or a machine that sucks up dirt'],['rhythm','a regular, repeated pattern of sound or movement'],['address','where someone lives or where mail is sent'],['occasion','a special event or time'],['guarantee','a promise that something will happen']];
+  const PRON = {necessary:['nec-es-sar-y','NESS-uh-sair-ee'],separate:['sep-a-rate','SEP-uh-rayt'],believe:['be-lieve','bih-LEEV'],receive:['re-ceive','rih-SEEV'],beautiful:['beau-ti-ful','BYOO-tih-full'],friend:['friend','FREND'],because:['be-cause','bih-KAWZ'],different:['dif-fer-ent','DIF-er-unt'],especially:['es-pe-cial-ly','ih-SPESH-uh-lee'],favorite:['fa-vor-ite','FAY-vuh-rit'],library:['li-brar-y','LY-brair-ee'],neighbor:['neigh-bor','NAY-bur'],restaurant:['res-tau-rant','RES-tuh-rahnt'],calendar:['cal-en-dar','KAL-un-der'],surprise:['sur-prise','sur-PRIZE'],knowledge:['knowl-edge','NOL-ij'],weird:['weird','WEERD'],government:['gov-ern-ment','GUV-ern-ment'],environment:['en-vi-ron-ment','en-VY-run-ment'],tomorrow:['to-mor-row','tuh-MOR-oh'],vacuum:['vac-u-um','VAK-yoom'],rhythm:['rhythm','RITH-um'],address:['ad-dress','uh-DRESS'],occasion:['oc-ca-sion','uh-KAY-zhun'],guarantee:['guar-an-tee','gair-un-TEE']};
+  function withPron(it){ const k = PRON[it.q.toLowerCase()]; if(k && !it.syl && !it.snd){ it.syl = k[0]; it.snd = k[1]; } return it; }
+
+  // rough syllable guess for words without hand-entered syllables
+  function autoSyl(word){
+    if(/\s/.test(word.trim())) return word.trim().split(/\s+/).map(autoSyl).join(' ');
+    const w = word.toLowerCase(), V = /[aeiouy]/;
+    if(w.length <= 3) return word;
+    const groups = []; let i = 0;
+    while(i < w.length){ if(V.test(w[i]) && !(w[i]==='y' && i===0)){ let j=i; while(j<w.length && V.test(w[j])) j++; groups.push([i,j]); i=j; } else i++; }
+    // silent final e (but keep consonant + "le")
+    if(groups.length > 1){ const last = groups[groups.length-1];
+      if(last[0] === w.length-1 && w[w.length-1]==='e' && !(w.endsWith('le') && w.length>3 && !V.test(w[w.length-3]))) groups.pop(); }
+    if(groups.length < 2) return word;
+    const cuts = [];
+    for(let g=0; g<groups.length-1; g++){
+      const a = groups[g][1], b = groups[g+1][0], cl = w.slice(a,b);
+      let cut;
+      if(g===groups.length-2 && w.endsWith('le') && b===w.length-1 && cl.length>=2) cut = b-2;
+      else if(cl.length <= 1) cut = a;
+      else if(/^(ch|sh|th|ph|wh|gh)$/.test(cl.slice(0,2)) && cl.length===2) cut = a;
+      else if(/^(ck|ng)/.test(cl)) cut = a+2;
+      else if(cl.length >= 3) cut = /(bl|br|cl|cr|dr|fl|fr|gl|gr|pl|pr|sc|sk|sl|sm|sn|sp|st|sw|tr|tw|ch|sh|th|ph|wh)$/.test(cl) ? b-2 : b-1;
+      else cut = a+1;
+      if(cut > 0 && cut < w.length) cuts.push(cut);
+    }
+    let out = '', prev = 0; cuts.forEach(c => { out += word.slice(prev,c) + '-'; prev = c; }); out += word.slice(prev);
+    return out;
+  }
+  const sylOf = it => it.syl ? { text: it.syl, guess:false } : { text: autoSyl(it.q), guess:true };
+  const showSyl = t => esc(t).replace(/-/g,'·');
+  const showSnd = t => esc(t).split('-').map(p => /[A-Z]/.test(p) && p === p.toUpperCase() ? '<b>'+p+'</b>' : p).join('-');
+
+  // ---------- phonics: tricky parts of each word ----------
+  // [start, length, group, label, sound, other spellings, tip]
+  const PH = {"necessary":[[2,1,"Soft and hard c","Soft c","/s/",["s","ss","sc"],"c before e, i or y usually says /s/."],[4,2,"Double letters","Double s","/s/",["s","c","sc"],"One c, two s’s: ne-C-e-SS-ary."],[6,3,"Endings and suffixes","-ary ending","/air-ee/",["ery","ory","airy"]]],"separate":[[3,1,"Schwa (lazy vowel)","Lazy vowel","/uh/",["e","u","i"],"There’s “a rat” in sep-A-RATe."],[7,1,"Silent letters","Silent e","silent",[""]]],"believe":[[3,2,"ie / ei","i before e","/ee/",["ei","ee","ea"],"Don’t beLIEve a LIE."],[6,1,"Silent letters","Silent e","silent",[""],"English words don’t end in v, so a silent e follows it."]],"receive":[[2,1,"Soft and hard c","Soft c","/s/",["s","ss","sc"]],[3,2,"ie / ei","ei after c","/ee/",["ie","ee","ea"],"i before e, except after c."],[6,1,"Silent letters","Silent e","silent",[""],"English words don’t end in v, so a silent e follows it."]],"beautiful":[[1,3,"Vowel teams","eau","/yoo/",["ew","u","eu"],"Big Elephants Are Useful: b-E-A-U."],[6,3,"Endings and suffixes","Suffix -ful","/ful/",["full","fol","fel"],"The suffix -ful has only one l."]],"friend":[[2,2,"ie / ei","Odd one out","/e/",["e","ea","ei"],"A friend is there to the END: fri-END."]],"because":[[3,2,"Vowel teams","au","/aw/",["aw","o","ou"],"Big Elephants Can Always Understand Small Elephants."],[5,2,"Sneaky sounds","s says /z/","/z/",["z","ze","s"]]],"different":[[2,2,"Double letters","Double f","/f/",["f","ph","gh"]],[4,2,"r-controlled vowels","er","/er/",["ur","ir","ar"]],[6,3,"Endings and suffixes","-ent ending","/unt/",["ant","int","unt"]]],"especially":[[4,2,"Sneaky sounds","ci says /sh/","/sh/",["sh","ti","ch"],"Think of “special” inside it."],[7,3,"Endings and suffixes","-al + -ly","/lee/",["ly","ley","lie"],"especial + ly = two l’s."]],"favorite":[[3,2,"r-controlled vowels","or says /er/","/er/",["er","ur","ir"]],[5,3,"Endings and suffixes","-ite ending","/it/",["it","ate","et"]]],"library":[[3,3,"Sneaky sounds","Don’t skip the r","/rair/",["r","rer","rr"],"Say li-BRAR-y, not li-berry."],[6,1,"Endings and suffixes","y at the end","/ee/",["ee","ey","ie"]]],"neighbor":[[1,4,"Vowel teams","eigh says /ay/","/ay/",["ay","a","ai"],"Same team as eight and weigh."],[6,2,"r-controlled vowels","or says /er/","/er/",["er","our","ur"]]],"restaurant":[[4,2,"Schwa (lazy vowel)","Hidden au","/uh/",["o","a","u"],"Rest-AU-rant: you can barely hear the au."],[7,3,"Endings and suffixes","-ant ending","/ahnt/",["ent","ont","unt"]]],"calendar":[[3,1,"Schwa (lazy vowel)","Lazy vowel","/uh/",["a","i","u"]],[6,2,"r-controlled vowels","ar says /er/","/er/",["er","or","ur"],"A calendAR has dAys And yeARs."]],"surprise":[[1,2,"r-controlled vowels","ur","/er/",["er","ir","or"],"Don’t drop the first r: suR-prise."],[5,3,"Sneaky sounds","s says /z/","/ize/",["ize","ice","yse"]]],"knowledge":[[0,2,"Silent letters","Silent k","/n/",["n","gn","nn"],"It starts with “know.”"],[2,2,"Vowel teams","ow says /o/","/o/",["o","ou","oa"]],[6,3,"Sneaky sounds","dge says /j/","/j/",["ge","j","gge"]]],"weird":[[1,2,"ie / ei","Rule breaker","/ee/",["ie","ee","ea"],"Weird breaks the i-before-e rule. That’s what makes it weird."]],"government":[[1,1,"Schwa (lazy vowel)","o says /uh/","/uh/",["u","a","ou"]],[5,1,"Sneaky sounds","Hidden n","/n/ (easy to miss)",["","nn","m"],"To GOVERN + ment."]],"environment":[[3,4,"Sneaky sounds","Hidden word","/eye-run/",["ir","iern","ern"],"There’s an IRON in envIRONment."]],"tomorrow":[[2,1,"Double letters","Only one m","/m/",["mm","mb","mn"],"One m, two r’s."],[4,2,"Double letters","Double r","/r/",["r","wr","rh"]],[6,2,"Vowel teams","ow says /oh/","/oh/",["o","oe","oa"]]],"vacuum":[[2,1,"Soft and hard c","Hard c","/k/",["k","ck","cc"]],[3,2,"Vowel teams","Double u","/yoo/",["u","oo","ew"],"One c, two u’s."]],"rhythm":[[0,2,"Silent letters","Silent h","/r/",["r","wr","rr"],"Rhythm Helps Your Two Hips Move."],[2,1,"Sneaky sounds","y as a vowel","/i/",["i","e","u"]],[3,3,"Sneaky sounds","th + m","/thum/",["them","thum","thim"]]],"address":[[1,2,"Double letters","Double d","/d/",["d","t"],"Two d’s and two s’s."],[5,2,"Double letters","Double s","/s/",["s","c","se"]]],"occasion":[[1,2,"Double letters","Double c","/k/",["c","ck","k"],"Two c’s, one s."],[4,4,"Endings and suffixes","-sion ending","/zhun/",["tion","sian","shun"]]],"guarantee":[[0,2,"Silent letters","Silent u","/g/",["g","gh","gw"],"Same gu as guard and guess."],[7,2,"Vowel teams","ee","/ee/",["ea","y","ie"]]]};
+  const VT = (c, sound, alts) => ['(?<c>'+c+')', 'Vowel teams', c, sound, alts];
+  const RC = (c, sound, alts) => ['(?<c>'+c+')(?![aeiouy])', 'r-controlled vowels', c, sound, alts];
+  const AUTO = [
+    ['(?<c>tion)', 'Endings and suffixes', '-tion ending', '/shun/', ['sion','shun','cian']],
+    ['(?<c>sion)', 'Endings and suffixes', '-sion ending', '/shun/ or /zhun/', ['tion','shun','zhun']],
+    ['(?<c>ture)$', 'Endings and suffixes', '-ture ending', '/cher/', ['cher','chur','tur']],
+    ['(?<c>ous)$', 'Endings and suffixes', '-ous ending', '/us/', ['us','uss','ose']],
+    ['(?<c>ough)', 'Vowel teams', 'ough', 'many sounds', ['ow','uff','off']],
+    ['(?<c>eigh)', 'Vowel teams', 'eigh says /ay/', '/ay/', ['ay','a','ai']],
+    ['(?<c>igh)', 'Silent letters', 'igh says /eye/', '/eye/', ['i','ie','y']],
+    ['(?<c>dge)', 'Sneaky sounds', 'dge says /j/', '/j/', ['ge','j','gge']],
+    ['(?<c>tch)', 'Sneaky sounds', 'tch says /ch/', '/ch/', ['ch','sh','tsh']],
+    ['^(?<c>kn)', 'Silent letters', 'Silent k', '/n/', ['n','gn','nn']],
+    ['^(?<c>wr)', 'Silent letters', 'Silent w', '/r/', ['r','rh','rr']],
+    ['^(?<c>gn)', 'Silent letters', 'Silent g', '/n/', ['n','kn','nn']],
+    ['(?<c>mb)$', 'Silent letters', 'Silent b', '/m/', ['m','mm','mn']],
+    ['(?<c>ph)', 'Sneaky sounds', 'ph says /f/', '/f/', ['f','ff','gh']],
+    ['(?<c>ck)', 'Sneaky sounds', 'ck says /k/', '/k/', ['k','c','kk']],
+    ['c(?<c>ei)', 'ie / ei', 'ei after c', '/ee/', ['ie','ee','ea']],
+    ['(?<c>ie)(?=.)', 'ie / ei', 'i before e', '/ee/', ['ei','ee','ea']],
+    ['(?<c>ei)', 'ie / ei', 'ei', '/ay/ or /ee/', ['ie','ay','ee']],
+    VT('ai','/ay/',['ay','a','ei']), VT('ay','/ay/',['ai','ey','a']), VT('ee','/ee/',['ea','ie','e']), VT('ea','usually /ee/',['ee','ie','e']),
+    VT('oa','/oh/',['ow','o','oe']), VT('oo','/oo/',['u','ew','ou']), VT('ou','/ow/',['ow','oo','u']), VT('ow','/ow/ or /oh/',['ou','oa','o']),
+    VT('oi','/oy/',['oy','oe','io']), VT('oy','/oy/',['oi','oe','ey']), VT('au','/aw/',['aw','o','ou']), VT('aw','/aw/',['au','o','ow']), VT('ew','/oo/',['oo','u','ue']),
+    RC('ar','/ar/',['or','er','arr']), RC('er','/er/',['ur','ir','or']), RC('ir','/er/',['er','ur','ear']), RC('ur','/er/',['er','ir','or']), RC('or','/or/',['our','ore','ar']),
+    ['(?<c>([bcdfgklmnprstz])\\2)', 'Double letters', 'DOUBLE', '', null],
+    ['(?<c>c)(?=[eiy])', 'Soft and hard c', 'Soft c', '/s/', ['s','ss','sc']],
+    ['[aeiouy][^aeiouy](?<c>e)$', 'Silent letters', 'Silent e', 'silent', ['']],
+    ['(?<c>ful)$', 'Endings and suffixes', 'Suffix -ful', '/ful/', ['full','fol']],
+    ['(?<c>ly)$', 'Endings and suffixes', 'Suffix -ly', '/lee/', ['ley','lee','lie']],
+    ['(?<c>ment)$', 'Endings and suffixes', 'Suffix -ment', '/ment/', ['mint','mant']],
+    ['(?<c>ness)$', 'Endings and suffixes', 'Suffix -ness', '/nis/', ['nes','nis']],
+    ['(?<c>able)$', 'Endings and suffixes', 'Suffix -able', '/uh-bul/', ['ible','abel']],
+    ['(?<c>ible)$', 'Endings and suffixes', 'Suffix -ible', '/uh-bul/', ['able','ibel']],
+    ['(?<c>ent)$', 'Endings and suffixes', '-ent ending', '/unt/', ['ant','int']],
+    ['(?<c>ant)$', 'Endings and suffixes', '-ant ending', '/unt/', ['ent','int']],
+    ['[^aeiou](?<c>y)$', 'Endings and suffixes', 'y at the end', '/ee/ or /eye/', ['ee','ie','ey']]
+  ].map(([src, group, label, sound, alts]) => ({ re: new RegExp(src, 'gd'), group, label, sound, alts }));
+  const phCache = new Map();
+  function phParts(it){
+    const word = it.q.trim();
+    if(phCache.has(word)) return phCache.get(word);
+    let parts = [];
+    const hand = PH[word.toLowerCase()];
+    if(hand) parts = hand.map(([s,l,group,label,sound,alts,tip]) => ({s,l,group,label,sound,alts,tip}));
+    else if(!/\s/.test(word) && /^[a-z'-]+$/i.test(word)){
+      const w = word.toLowerCase(), taken = new Array(w.length).fill(false);
+      for(const p of AUTO){
+        p.re.lastIndex = 0;
+        for(const m of w.matchAll(p.re)){
+          const [a,b] = m.indices.groups.c;
+          if(taken.slice(a,b).some(Boolean)) continue;
+          for(let i=a;i<b;i++) taken[i] = true;
+          const chunk = w.slice(a,b);
+          if(p.label === 'DOUBLE') parts.push({s:a,l:b-a,group:p.group,label:'Double '+chunk[0],sound:'/'+chunk[0]+'/',alts:[chunk[0]],auto:true});
+          else parts.push({s:a,l:b-a,group:p.group,label:p.label,sound:p.sound,alts:p.alts,auto:true});
+        }
+      }
+      parts.sort((x,y)=>x.s-y.s); parts = parts.slice(0,4);
+    }
+    phCache.set(word, parts);
+    return parts;
+  }
+  function markWord(word, parts, blankIdx){
+    let html = '', i = 0;
+    parts.forEach((p,k) => {
+      html += esc(word.slice(i, p.s));
+      if(k === blankIdx) html += `<span class="blank" style="width:${0.6*p.l + 0.3}em" aria-label="blank"></span>`;
+      else html += '<mark class="ph">' + esc(word.slice(p.s, p.s+p.l)) + '</mark>';
+      i = p.s + p.l;
+    });
+    return html + esc(word.slice(i));
+  }
+  const soundText = p => p.sound === 'silent' ? 'is silent' : 'says ' + p.sound;
+  function phListHtml(word, parts, only){
+    return parts.filter((p,k) => only === undefined || k === only).map(p =>
+      `<li><b>${esc(word.slice(p.s,p.s+p.l))}</b>: ${esc(p.label)}, ${esc(soundText(p))}${p.tip ? `<span class="tip">${esc(p.tip)}</span>` : ''}</li>`).join('');
+  }
+
+  const stateItems = () => STATES.map(([s,c])=>({id:uid(), q:'What is the capital of ' + s + '?', a:c}));
+  const pairItems = arr => arr.map(([q,a])=>withPron({id:uid(), q, a}));
+
+  // ---------- storage: multiple lists ----------
+  let data = { sets: [], cur: null, range: 5, seededSpelling: false };
+  let items = [], justSeeded = false;
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.sets) && d.sets.length) data = Object.assign(data, d); }
+      else {
+        const old = localStorage.getItem(OLD);
+        if(old){ const arr = JSON.parse(old); if(Array.isArray(arr) && arr.length){
+          const isStates = arr.some(x => /^What is the capital of/.test(x.q));
+          const r = +localStorage.getItem(OLD+'-range');
+          data.sets = [{ id:uid(), name: isStates ? 'States and capitals' : 'My list', items: arr.filter(x=>x&&x.q&&x.a) }];
+          if(r) data.range = r;
+        }}
+      }
+    }catch(e){}
+    if(!data.sets.length) data.sets = [{ id:uid(), name:'States and capitals', items: stateItems() }];
+    if(!data.seededSpelling){
+      data.seededSpelling = true; justSeeded = true;
+      if(!data.sets.some(s => s.name === 'Spelling words')) data.sets.push({ id:uid(), name:'Spelling words', items: pairItems(SPELLING) });
+      data.cur = data.sets.find(s => s.name === 'Spelling words').id;
+      data.range = 5;
+    }
+    if(!data.sets.some(s => s.id === data.cur)) data.cur = data.sets[0].id;
+    data.sets.forEach(st => st.items.forEach(withPron));
+    items = curSet().items;
+    save();
+  }
+  function save(){ try{ curSet().items = items; localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+  const curSet = () => data.sets.find(s => s.id === data.cur);
+
+  function renderSets(){
+    $('setSel').innerHTML = data.sets.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    $('setSel').value = data.cur;
+    $('deleteList').disabled = data.sets.length < 2;
+  }
+  function switchTo(id){
+    stopAll();
+    data.cur = id; items = curSet().items; data.range = 5; save();
+    renderSets(); renderList(); showTab(currentTab);
+  }
+  $('setSel').onchange = () => switchTo($('setSel').value);
+  $('newList').onclick = () => {
+    const name = (prompt('Name for the new list', 'New list') || '').trim(); if(!name) return;
+    const s = { id:uid(), name, items:[] }; data.sets.push(s); switchTo(s.id); $('bulk').focus();
+  };
+  $('renameList').onclick = () => {
+    const name = (prompt('Rename this list', curSet().name) || '').trim(); if(!name) return;
+    curSet().name = name; save(); renderSets(); renderList();
+  };
+  $('deleteList').onclick = () => {
+    if(data.sets.length < 2) return;
+    if(!confirm('Delete the list "' + curSet().name + '" and its ' + items.length + ' items?')) return;
+    data.sets = data.sets.filter(s => s.id !== data.cur); switchTo(data.sets[0].id);
+  };
+
+  // ---------- parsing ----------
+  function parse(text){
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const delim = /\t|::|\|/;
+    const out = [];
+    if(lines.some(l => delim.test(l))){
+      lines.forEach(l => {
+        let parts;
+        if(l.includes('\t')) parts = l.split('\t');
+        else if(l.includes('::')) parts = l.split('::');
+        else parts = l.split('|');
+        parts = parts.map(x=>x.trim());
+        const q = parts[0], a = parts.length >= 3 ? parts[1] : parts.slice(1).join(' ').trim();
+        const it = {id:uid(), q, a};
+        if(parts[2]) it.syl = parts[2]; if(parts[3]) it.snd = parts[3];
+        if(q && a) out.push(withPron(it));
+      });
+    } else {
+      for(let i=0;i+1<lines.length;i+=2) out.push(withPron({id:uid(), q:lines[i], a:lines[i+1]}));
+    }
+    return out;
+  }
+
+  // ---------- list ----------
+  function renderList(){
+    $('count').textContent = items.length + (items.length===1?' item':' items');
+    $('listTitle').textContent = curSet().name;
+    const ol = $('list');
+    if(!items.length){ ol.innerHTML = '<li class="empty" style="display:block;background:none;box-shadow:none">This list is empty. Paste some pairs above or load one of the ready-made lists.</li>'; return; }
+    ol.innerHTML = items.map((it,i) => `<li data-id="${it.id}"><span class="n">${i+1}</span><div class="q">${esc(it.q)}</div><div class="a">${esc(it.a)}</div>${(it.syl||it.snd) ? `<div class="p">${it.syl?'<b>'+showSyl(it.syl)+'</b>':''}${it.syl&&it.snd?'&nbsp;&nbsp;':''}${it.snd?showSnd(it.snd):''}</div>` : ''}
+      <div class="acts"><button class="icon" data-act="edit">Edit</button><button class="icon" data-act="del">Delete</button></div></li>`).join('');
+  }
+  $('list').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    const li = b.closest('li'); const id = li.dataset.id; const it = items.find(x=>x.id===id); if(!it) return;
+    if(b.dataset.act==='del'){ items = items.filter(x=>x.id!==id); save(); renderList(); }
+    else if(b.dataset.act==='edit'){
+      li.className='editing';
+      li.innerHTML = `<input type="text" class="eq" value="${esc(it.q)}"><input type="text" class="ea" value="${esc(it.a)}">
+        <input type="text" class="esy" value="${esc(it.syl||'')}" placeholder="Syllables (optional), e.g. nec-es-sar-y">
+        <input type="text" class="esn" value="${esc(it.snd||'')}" placeholder="Sounds like (optional), e.g. NESS-uh-sair-ee">
+        <div class="row"><button class="btn" data-act="save">Save changes</button><button class="btn quiet" data-act="cancel">Cancel</button></div>`;
+      li.querySelector('.eq').focus();
+    }
+    else if(b.dataset.act==='save'){
+      const q = li.querySelector('.eq').value.trim(), a = li.querySelector('.ea').value.trim();
+      if(q && a){ it.q=q; it.a=a;
+        const sy = li.querySelector('.esy').value.trim(), sn = li.querySelector('.esn').value.trim();
+        if(sy) it.syl = sy; else delete it.syl;
+        if(sn) it.snd = sn; else delete it.snd;
+        save(); }
+      renderList();
+    }
+    else if(b.dataset.act==='cancel') renderList();
+  });
+
+  function addItems(got, label){
+    const have = new Set(items.map(x=>x.q.toLowerCase()));
+    const add = got.filter(x=>!have.has(x.q.toLowerCase()));
+    items = items.concat(add); save(); renderList();
+    $('bulkMsg').textContent = add.length ? 'Added ' + add.length + ' ' + label + '.' : 'Those are already in this list.';
+  }
+  $('addBulk').onclick = () => {
+    const got = parse($('bulk').value);
+    if(!got.length){ $('bulkMsg').textContent = 'Nothing added. Put a question and answer on each line with a tab, | or :: between them.'; return; }
+    addItems(got, got.length===1?'pair':'pairs'); $('bulk').value='';
+  };
+  $('addOne').onclick = () => {
+    const q = $('oneQ').value.trim(), a = $('oneA').value.trim();
+    if(!q || !a){ (q?$('oneA'):$('oneQ')).focus(); return; }
+    const it = {id:uid(), q, a}, sy = $('oneS').value.trim(), sn = $('oneN').value.trim();
+    if(sy) it.syl = sy; if(sn) it.snd = sn;
+    items.push(withPron(it)); save(); renderList(); ['oneQ','oneA','oneS','oneN'].forEach(k=>$(k).value=''); $('oneQ').focus();
+  };
+  $('oneA').addEventListener('keydown', e => { if(e.key==='Enter') $('addOne').click(); });
+  $('states').onclick = () => addItems(stateItems(), 'states');
+  $('spellSample').onclick = () => addItems(pairItems(SPELLING), 'words');
+  $('clearBtn').onclick = () => { if(items.length && confirm('Remove all ' + items.length + ' items from "' + curSet().name + '"?')){ items=[]; save(); renderList(); } };
+  $('exportBtn').onclick = () => {
+    const clean = t => (t||'').replace(/\t/g,' ');
+    const text = items.map(it => [it.q, it.a].concat(it.syl||it.snd ? [it.syl||'', it.snd||''] : []).map(clean).join('\t')).join('\n');
+    const ta = $('bulk'); ta.value = text; ta.focus(); ta.select();
+    try{ navigator.clipboard && navigator.clipboard.writeText(text); $('bulkMsg').textContent = 'Copied ' + items.length + ' pairs to the clipboard (tab-separated, pastes into Excel). They’re also in the box above.'; }
+    catch(e){ $('bulkMsg').textContent = 'Your list is in the box above. Copy it from there.'; }
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      let got = [];
+      try{ const d = JSON.parse(r.result); if(Array.isArray(d)) got = d.filter(x=>x&&x.q&&x.a).map(x=>({id:uid(),q:String(x.q),a:String(x.a)})); }
+      catch(_){ got = parse(String(r.result)); }
+      if(got.length) addItems(got, 'pairs'); else $('bulkMsg').textContent = 'That file had no question/answer pairs I could read.';
+    };
+    r.readAsText(f); e.target.value='';
+  };
+
+  // ---------- range (first 5, first 10, ...) ----------
+  function fillRanges(){
+    const len = items.length, opts = [];
+    for(let n=5; n<len; n+=5) opts.push(n);
+    opts.push(len);
+    const want = Math.min(Math.max(data.range, 2), len);
+    const cur = opts.find(n => n >= want) || len;
+    document.querySelectorAll('select.range').forEach(sel => {
+      sel.innerHTML = opts.map(n => `<option value="${n}">${n===len ? 'All ' + len : 'First ' + n}</option>`).join('');
+      sel.value = cur;
+    });
+  }
+  const rangeVal = () => +document.querySelector('select.range').value || items.length;
+  function setRange(n){ data.range = n; save(); fillRanges(); }
+  document.querySelectorAll('select.range').forEach(sel => sel.onchange = () => setRange(+sel.value));
+  const poolNow = () => items.slice(0, rangeVal());
+  const nextN = () => { const n = rangeVal(); return n < items.length ? Math.min(n+5, items.length) : 0; };
+  function stepLabel(btn, verb){
+    const n = nextN(); btn.hidden = !n;
+    if(n) btn.textContent = verb + (n === items.length ? ' with all ' + n : ' with the first ' + n);
+  }
+
+  // ---------- tabs ----------
+  let currentTab = 'edit';
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  function showTab(name){
+    currentTab = name;
+    if(!['spell','say','phon'].includes(name) && window.speechSynthesis) speechSynthesis.cancel();
+    fillRanges();
+    document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===name));
+    ['edit','spell','say','phon','quiz','match'].forEach(t => $('tab-'+t).hidden = t!==name);
+    if(name === 'phon') fillGroups();
+    if(name !== 'say') stopListening();
+    $('sayNeed').textContent = items.length ? '' : 'Add some words to this list first.'; $('startSay').disabled = !items.length;
+    const few = items.length < 2 ? 'Add at least 2 items to this list first.' : '';
+    $('quizNeed').textContent = few; $('matchNeed').textContent = few;
+    $('spellNeed').textContent = items.length ? '' : 'Add some words to this list first.';
+    $('startQuiz').disabled = items.length < 2; $('startMatch').disabled = items.length < 2; $('startSpell').disabled = !items.length;
+  }
+  function stopAll(){
+    if(window.speechSynthesis) speechSynthesis.cancel();
+    clearInterval(timer);
+    stopListening();
+    ['spellRun','spellDone','sayRun','sayDone','phRun','phDone','quizRun','quizDone','matchRun','matchDone'].forEach(id => $(id).hidden = true);
+    ['spellSetup','saySetup','phSetup','quizSetup','matchSetup'].forEach(id => $(id).hidden = false);
+  }
+
+  // ---------- speech ----------
+  const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  let voice = null;
+  function pickVoice(){
+    if(!canSpeak) return;
+    const vs = speechSynthesis.getVoices();
+    voice = vs.find(v => v.lang === 'en-US' && /natural|enhanced|premium|google/i.test(v.name))
+         || vs.find(v => v.lang === 'en-US') || vs.find(v => /^en/i.test(v.lang)) || null;
+  }
+  if(canSpeak){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function say(parts, rateOverride){
+    if(!canSpeak) return;
+    speechSynthesis.cancel();
+    const rate = rateOverride || +$('rate').value;
+    parts.forEach(t => {
+      const u = new SpeechSynthesisUtterance(t);
+      u.rate = rate; u.lang = 'en-US'; if(voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    });
+  }
+
+  // syllable-by-syllable playback: each part slowly, then the whole word
+  function sayParts(it){
+    const src = it.snd || sylOf(it).text;
+    const parts = src.split(/[-\s·]+/).filter(Boolean).map(x => x.toLowerCase());
+    if(!canSpeak) return;
+    speechSynthesis.cancel();
+    const queue = parts.map(t => [t, 0.6]).concat([[it.q, 0.7]]);
+    queue.forEach(([t, rate]) => {
+      const u = new SpeechSynthesisUtterance(t); u.rate = rate; u.lang='en-US'; if(voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    });
+  }
+
+  // ---------- on-screen letter pad ----------
+  const touchy = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  let padOn = false;
+  const ROWS = ['qwertyuiop','asdfghjkl','zxcvbnm'];
+  function buildPad(){
+    const pad = $('pad');
+    pad.innerHTML = ROWS.map((r,i) => '<div class="prow">' + [...r].map(c=>`<button type="button" data-k="${c}">${c}</button>`).join('') +
+      (i===2 ? '<button type="button" class="wide" data-k="back" aria-label="Backspace">⌫</button>' : '') + '</div>').join('') +
+      '<div class="prow"><button type="button" data-k="\'">\'</button><button type="button" data-k="-">-</button><button type="button" class="space" data-k=" ">space</button><button type="button" class="wide" data-k="clear">Clear</button></div>';
+  }
+  function padKey(k){
+    if(!S || S.done || $('spellRun').hidden) return;
+    const inp = $('sInput');
+    if(k==='back') inp.value = inp.value.slice(0,-1);
+    else if(k==='clear') inp.value = '';
+    else if(inp.value.length < 60) inp.value += k;
+    if(inp.classList.contains('bad')) inp.className = 'spell';
+  }
+  $('pad').addEventListener('pointerdown', e => { const b = e.target.closest('button'); if(b){ e.preventDefault(); padKey(b.dataset.k); } });
+  $('pad').addEventListener('click', e => { if(e.detail === 0){ const b = e.target.closest('button'); if(b) padKey(b.dataset.k); } }); // keyboard activation
+  function applyPad(){
+    padOn = $('usePad').checked;
+    const inp = $('sInput');
+    inp.readOnly = padOn;
+    inp.setAttribute('inputmode', padOn ? 'none' : 'text');
+    inp.placeholder = padOn ? 'Tap the letters' : 'Type the word';
+    $('pad').hidden = !padOn;
+  }
+  function focusInput(){ if(!padOn) $('sInput').focus(); }
+  // a hardware keyboard still works while the pad is on
+  document.addEventListener('keydown', e => {
+    if(!padOn || $('spellRun').hidden || $('tab-spell').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if(e.target.matches('input:not(#sInput),textarea,select')) return;
+    if(e.key==='Enter' && e.target.matches('button')) return; // let the focused button handle it
+    if(e.key==='Enter'){ e.preventDefault(); if(S.done) $('sNext').click(); else checkS(); }
+    else if(e.key==='Backspace'){ e.preventDefault(); padKey('back'); }
+    else if(/^[a-zA-Z' -]$/.test(e.key)){ e.preventDefault(); padKey(e.key.toLowerCase()); }
+  });
+  $('usePad').onchange = () => { data.pad = $('usePad').checked; save(); applyPad(); };
+
+  // ---------- spelling ----------
+  let S = null;
+  const norm = s => s.trim().toLowerCase().replace(/\s+/g,' ').replace(/[’‘]/g,"'");
+  function startSpell(order, pool){
+    S = { order: shuffle(order), pool, i:0, score:0, missed:[], tries:0, done:false };
+    $('spellSetup').hidden = true; $('spellDone').hidden = true; $('spellRun').hidden = false;
+    $('noVoice').hidden = canSpeak;
+    $('sayWord').hidden = !canSpeak; $('sayDef').hidden = !canSpeak;
+    showS();
+  }
+  function showS(){
+    const it = S.order[S.i];
+    S.tries = 0; S.done = false;
+    const inp = $('sInput'); inp.value=''; inp.className='spell'; inp.disabled=false;
+    inp.name = 'sp-' + uid(); // fresh name each word so Chrome has no history to suggest from
+    $('sDef').textContent = it.a; $('sDef').hidden = canSpeak; $('showDef').hidden = !canSpeak;
+    $('sFeedback').textContent=''; $('sFeedback').className='feedback';
+    $('sCheck').hidden=false; $('sNext').hidden=true; $('sPh').hidden = true;
+    $('sNext').textContent = S.i === S.order.length-1 ? 'See results' : 'Next word';
+    $('sPos').textContent = 'Word ' + (S.i+1) + ' of ' + S.order.length;
+    $('sScore').textContent = S.score + ' correct';
+    $('sBar').style.width = (S.i / S.order.length * 100) + '%';
+    sayCurrent(true);
+    focusInput();
+  }
+  function sayCurrent(withDef){
+    const it = S.order[S.i];
+    const parts = [it.q];
+    if(withDef && $('readDef').checked) parts.push(it.a, it.q);
+    say(parts);
+  }
+  $('sayWord').onclick = () => { sayCurrent(false); focusInput(); };
+  $('saySlowS').onclick = () => { sayParts(S.order[S.i]); focusInput(); };
+  $('saySlowS').hidden = !canSpeak;
+  $('sayDef').onclick = () => { say([S.order[S.i].a]); focusInput(); };
+  $('showDef').onclick = () => { $('sDef').hidden = false; $('showDef').hidden = true; focusInput(); };
+  function checkS(){
+    if(!S || S.done) return;
+    const it = S.order[S.i], inp = $('sInput');
+    if(!inp.value.trim()){ focusInput(); return; }
+    S.tries++;
+    if(norm(inp.value) === norm(it.q)){
+      S.done = true; S.score++;
+      inp.className='spell ok'; inp.disabled = true;
+      $('sFeedback').textContent = S.tries === 1 ? 'Correct.' : 'Correct on the second try.'; $('sFeedback').className='feedback ok';
+      endWord();
+    } else if(S.tries < 2){
+      inp.className='spell bad';
+      $('sFeedback').textContent = 'Not quite. Listen again and try once more.'; $('sFeedback').className='feedback bad';
+      sayCurrent(false); if(padOn) inp.value=''; else inp.select();
+    } else {
+      S.done = true; S.missed.push({ it, typed: inp.value.trim() });
+      inp.className='spell bad'; inp.disabled = true;
+      $('sFeedback').className='feedback bad';
+      $('sFeedback').innerHTML = 'The correct spelling is:<div class="reveal">' + esc(it.q) + '</div>';
+      say([it.q]);
+      endWord();
+    }
+    $('sScore').textContent = S.score + ' correct';
+  }
+  function showSpellPh(){
+    const it = S.order[S.i], parts = phParts(it);
+    if(!parts.length){ $('sPh').hidden = true; return; }
+    $('sPh').innerHTML = '<div class="phWord">' + markWord(it.q, parts) + '</div><ul class="phList">' + phListHtml(it.q, parts) + '</ul>';
+    $('sPh').hidden = false;
+  }
+  function endWord(){ showSpellPh(); $('sCheck').hidden = true; $('sNext').hidden = false; $('sNext').focus(); }
+  $('sCheck').onclick = checkS;
+  $('sInput').addEventListener('keydown', e => { if(!padOn && e.key==='Enter'){ e.preventDefault(); checkS(); } });
+  $('sNext').onclick = () => { if(S.i < S.order.length-1){ S.i++; showS(); } else finishSpell(); };
+  $('sQuit').onclick = () => finishSpell(true);
+  function finishSpell(early){
+    if(canSpeak) speechSynthesis.cancel();
+    const done = early ? S.i + (S.done?1:0) : S.order.length;
+    $('spellRun').hidden = true; $('spellDone').hidden = false;
+    $('sdScore').textContent = (done ? Math.round(S.score/done*100) : 0) + '%';
+    $('sdLine').textContent = S.score + ' of ' + done + ' spelled correctly' + (early && done < S.order.length ? ' (ended early)' : '') + '.';
+    $('sMissedWrap').hidden = !S.missed.length; $('sRetryMissed').hidden = !S.missed.length;
+    $('sMissedList').innerHTML = S.missed.map(m=>`<li><strong>${esc(m.it.q)}</strong><br><span class="a">You typed: ${esc(m.typed)}</span></li>`).join('');
+    stepLabel($('spellStepUp'), 'Spell again');
+  }
+  $('startSpell').onclick = () => { if(items.length){ const p = poolNow(); startSpell(p, p); } };
+  $('sRetryMissed').onclick = () => startSpell(S.missed.map(m=>m.it), S.pool);
+  $('spellStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startSpell(p, p); };
+  $('sAgain').onclick = () => { $('spellDone').hidden = true; $('spellSetup').hidden = false; };
+
+  // ---------- pronunciation ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let P = null, rec = null;
+  const plain = t => t.toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim();
+  function stopListening(){ if(rec){ try{ rec.abort(); }catch(e){} rec = null; } const m = $('pMic'); if(m){ m.classList.remove('on'); m.querySelector('span').textContent = 'Say it'; } }
+  function startSay(order, pool){
+    P = { order: shuffle(order), pool, i:0, got:0, missed:[], tries:0, ok:false };
+    $('saySetup').hidden = true; $('sayDone').hidden = true; $('sayRun').hidden = false;
+    $('pMic').hidden = !SR; $('pHear').hidden = !canSpeak; $('pSlow').hidden = !canSpeak;
+    showP();
+  }
+  function showP(){
+    stopListening();
+    const it = P.order[P.i]; P.tries = 0; P.ok = false;
+    const sy = sylOf(it);
+    const pp = phParts(it);
+    $('pWord').innerHTML = markWord(it.q, pp);
+    $('pPh').innerHTML = phListHtml(it.q, pp);
+    $('pSyl').innerHTML = showSyl(sy.text) + (sy.guess ? ' <span class="guess">(best guess)</span>' : '');
+    $('pSnd').innerHTML = it.snd ? showSnd(it.snd) : '';
+    $('pSndRow').hidden = !it.snd || !$('showSnd').checked;
+    $('pDef').textContent = it.a;
+    $('pFeedback').textContent = ''; $('pFeedback').className = 'feedback';
+    $('pPos').textContent = 'Word ' + (P.i+1) + ' of ' + P.order.length;
+    $('pScore').textContent = SR ? P.got + ' said correctly' : '';
+    $('pBar').style.width = (P.i / P.order.length * 100) + '%';
+    $('pNext').textContent = P.i === P.order.length-1 ? 'See results' : 'Next word';
+    say([it.q], 0.9);
+  }
+  $('pHear').onclick = () => say([P.order[P.i].q], 0.9);
+  $('pSlow').onclick = () => sayParts(P.order[P.i]);
+  $('pMic').onclick = () => {
+    if(!SR || !P) return;
+    if(rec){ stopListening(); return; }
+    if(canSpeak) speechSynthesis.cancel();
+    const it = P.order[P.i], target = plain(it.q);
+    rec = new SR(); rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 5;
+    const btn = $('pMic'); btn.classList.add('on'); btn.querySelector('span').textContent = 'Listening…';
+    $('pFeedback').textContent = 'Say the word now.'; $('pFeedback').className = 'feedback';
+    let heard = false;
+    rec.onresult = e => {
+      heard = true;
+      const alts = [...e.results[0]].map(a => plain(a.transcript));
+      const hit = alts.some(a => a === target || (' ' + a + ' ').includes(' ' + target + ' '));
+      P.tries++;
+      if(hit){
+        if(!P.ok){ P.ok = true; P.got++; }
+        $('pFeedback').textContent = 'Nice. That sounded like "' + it.q + '".'; $('pFeedback').className = 'feedback ok';
+      } else {
+        $('pFeedback').textContent = 'I heard "' + (alts[0] || '…') + '". Try "Slowly, by syllable", then say it again.'; $('pFeedback').className = 'feedback bad';
+      }
+      $('pScore').textContent = P.got + ' said correctly';
+    };
+    rec.onerror = e => {
+      heard = true;
+      const msg = { 'not-allowed': isFile ? 'Chrome blocks the microphone for pages opened as a file. Double-click Start Q&A Drill in the same folder instead.' : 'The microphone is blocked. Allow microphone access for this page in Chrome, then try again.',
+        'service-not-allowed':'The microphone is blocked. Allow microphone access for this page in Chrome, then try again.',
+        'no-speech':'I didn\'t hear anything. Tap Say it and speak right away.',
+        'audio-capture':'No microphone was found.',
+        'network':'Speech checking needs an internet connection.' }[e.error];
+      if(e.error !== 'aborted'){ $('pFeedback').textContent = msg || 'Something went wrong listening. Try again.'; $('pFeedback').className = 'feedback bad'; }
+    };
+    rec.onend = () => { if(!heard){ $('pFeedback').textContent = 'I didn\'t catch that. Tap Say it and try again.'; $('pFeedback').className = 'feedback bad'; } rec = null; btn.classList.remove('on'); btn.querySelector('span').textContent = 'Say it'; };
+    try{ rec.start(); }catch(err){ stopListening(); }
+  };
+  $('pNext').onclick = () => {
+    if(SR && !P.ok) P.missed.push(P.order[P.i]);
+    if(P.i < P.order.length-1){ P.i++; showP(); } else finishSay();
+  };
+  $('pQuit').onclick = () => finishSay(true);
+  function finishSay(early){
+    stopListening(); if(canSpeak) speechSynthesis.cancel();
+    const done = early ? P.i + (P.ok?1:0) : P.order.length;
+    $('sayRun').hidden = true; $('sayDone').hidden = false;
+    if(SR){
+      $('pdScore').textContent = (done ? Math.round(P.got/done*100) : 0) + '%';
+      $('pdLine').textContent = P.got + ' of ' + done + ' said correctly' + (early && done < P.order.length ? ' (ended early)' : '') + '.';
+    } else { $('pdScore').textContent = done; $('pdLine').textContent = 'words practiced.'; }
+    $('pMissedWrap').hidden = !P.missed.length; $('pRetryMissed').hidden = !P.missed.length;
+    $('pMissedList').innerHTML = P.missed.map(m => `<li><strong>${esc(m.q)}</strong><br><span class="a">${showSyl(sylOf(m).text)}${m.snd ? '&nbsp;&nbsp;' + showSnd(m.snd) : ''}</span></li>`).join('');
+    stepLabel($('sayStepUp'), 'Practice again');
+  }
+  $('startSay').onclick = () => { if(items.length){ const p = poolNow(); startSay(p, p); } };
+  $('pRetryMissed').onclick = () => startSay(P.missed, P.pool);
+  $('sayStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startSay(p, p); };
+  $('pAgain').onclick = () => { $('sayDone').hidden = true; $('saySetup').hidden = false; };
+  $('showSnd').onchange = () => { if(P && !$('sayRun').hidden) $('pSndRow').hidden = !P.order[P.i].snd || !$('showSnd').checked; };
+  $('noMic').hidden = !!SR;
+  const isFile = location.protocol === 'file:';
+  $('fileMic').hidden = !(SR && isFile);
+
+  // ---------- patterns quiz ----------
+  let H = null;
+  function phQuestions(pool){
+    const g = $('phGroup').value;
+    return pool.flatMap(it => phParts(it).map((p,k) => ({it, k, p}))).filter(x => !g || x.p.group === g);
+  }
+  function fillGroups(){
+    const sel = $('phGroup'), was = sel.value;
+    const groups = [...new Set(poolNow().flatMap(it => phParts(it).map(p => p.group)))].sort();
+    sel.innerHTML = '<option value="">All patterns</option>' + groups.map(g => `<option>${esc(g)}</option>`).join('');
+    if(groups.includes(was)) sel.value = was;
+    const n = phQuestions(poolNow()).length;
+    $('startPh').disabled = !n;
+    $('phNeed').textContent = n ? n + ' tricky parts to practice.' : 'No spelling patterns found in these words. This works best on single-word lists.';
+  }
+  document.querySelectorAll('select.range').forEach(sel => sel.addEventListener('change', () => { if(!$('tab-phon').hidden) fillGroups(); }));
+  $('phGroup').onchange = fillGroups;
+  const showAlt = t => t === '' ? '(no letter)' : t;
+  function startPh(qs, pool){
+    H = { order: shuffle(qs), pool, i:0, score:0, missed:[], answered:false };
+    $('phSetup').hidden = true; $('phDone').hidden = true; $('phRun').hidden = false;
+    $('hHear').hidden = !canSpeak; $('hSlow').hidden = !canSpeak;
+    showH();
+  }
+  function showH(){
+    const {it, k, p} = H.order[H.i], parts = phParts(it);
+    const right = it.q.slice(p.s, p.s+p.l).toLowerCase();
+    const opts = [right]; p.alts.forEach(a => { if(!opts.includes(a) && opts.length < 4) opts.push(a); });
+    H.opts = shuffle(opts); H.right = right; H.answered = false;
+    $('hWord').innerHTML = markWord(it.q, parts.map((x,j)=> j===k ? x : null).filter(Boolean), 0);
+    $('hDef').textContent = it.a;
+    $('hChoices').innerHTML = H.opts.map((o,j)=>`<button class="choice letters" data-k="${j}"><span class="k">${j+1}</span><span>${esc(showAlt(o))}</span></button>`).join('');
+    $('hFeedback').textContent = ''; $('hFeedback').className = 'feedback'; $('hPh').hidden = true;
+    $('hPos').textContent = (H.i+1) + ' of ' + H.order.length;
+    $('hScore').textContent = H.score + ' correct';
+    $('hBar').style.width = (H.i / H.order.length * 100) + '%';
+    $('hNext').disabled = true; $('hNext').textContent = H.i === H.order.length-1 ? 'See results' : 'Next';
+    if($('phSay').checked) say([it.q], 0.9);
+  }
+  function pickH(j){
+    if(!H || H.answered) return;
+    H.answered = true;
+    const {it, k, p} = H.order[H.i];
+    const btns = [...$('hChoices').children];
+    btns.forEach((b,x) => { b.disabled = true; if(H.opts[x] === H.right) b.classList.add('right'); });
+    if(H.opts[j] === H.right){ H.score++; $('hFeedback').textContent = 'Correct.'; $('hFeedback').className = 'feedback ok'; }
+    else { btns[j].classList.add('wrong'); H.missed.push(H.order[H.i]); $('hFeedback').textContent = 'Not quite. It’s ' + H.right + '.'; $('hFeedback').className = 'feedback bad'; }
+    $('hWord').innerHTML = markWord(it.q, [p]);
+    $('hPh').innerHTML = '<ul class="phList">' + phListHtml(it.q, phParts(it), k) + '</ul>'; $('hPh').hidden = false;
+    $('hScore').textContent = H.score + ' correct';
+    $('hNext').disabled = false; $('hNext').focus();
+  }
+  $('hChoices').addEventListener('click', e => { const b = e.target.closest('.choice'); if(b) pickH(+b.dataset.k); });
+  $('hHear').onclick = () => say([H.order[H.i].it.q], 0.9);
+  $('hSlow').onclick = () => sayParts(H.order[H.i].it);
+  $('hNext').onclick = () => { if(H.i < H.order.length-1){ H.i++; showH(); } else finishPh(); };
+  $('hQuit').onclick = () => finishPh(true);
+  function finishPh(early){
+    if(canSpeak) speechSynthesis.cancel();
+    const done = early ? H.i + (H.answered?1:0) : H.order.length;
+    $('phRun').hidden = true; $('phDone').hidden = false;
+    $('hdScore').textContent = (done ? Math.round(H.score/done*100) : 0) + '%';
+    $('hdLine').textContent = H.score + ' of ' + done + ' correct' + (early && done < H.order.length ? ' (ended early)' : '') + '.';
+    $('hMissedWrap').hidden = !H.missed.length; $('hRetryMissed').hidden = !H.missed.length;
+    $('hMissedList').innerHTML = H.missed.map(m => `<li><span class="phWord" style="font-size:24px">${markWord(m.it.q, [m.p])}</span>${phListHtml(m.it.q, phParts(m.it), m.k).replace(/^<li>|<\/li>$/g,'')}</li>`).join('');
+    stepLabel($('phStepUp'), 'Patterns again');
+  }
+  $('startPh').onclick = () => { const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p); };
+  $('hRetryMissed').onclick = () => startPh(H.missed, H.pool);
+  $('phStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); fillGroups(); const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p); };
+  $('hAgain').onclick = () => { $('phDone').hidden = true; $('phSetup').hidden = false; fillGroups(); };
+  document.addEventListener('keydown', e => {
+    if($('phRun').hidden || $('tab-phon').hidden || e.target.matches('input,textarea,select')) return;
+    if(/^[1-4]$/.test(e.key) && +e.key <= (H.opts||[]).length) pickH(+e.key-1);
+    else if(e.key==='Enter' && H.answered && document.activeElement !== $('hNext')) $('hNext').click();
+  });
+
+  // ---------- quiz ----------
+  let Q = null;
+  function startQuiz(order, pool){
+    const n = +$('nChoices').value, dir = $('direction').value;
+    Q = { order: shuffle(order), pool, i:0, score:0, missed:[], n, dir, answered:false };
+    $('quizSetup').hidden = true; $('quizDone').hidden = true; $('quizRun').hidden = false;
+    showQ();
+  }
+  function showQ(){
+    const it = Q.order[Q.i];
+    const promptText = Q.dir==='qa' ? it.q : it.a;
+    const right = Q.dir==='qa' ? it.a : it.q;
+    const field = Q.dir==='qa' ? 'a' : 'q';
+    const seen = new Set([right.toLowerCase()]);
+    const wrong = [];
+    for(const o of [...shuffle(Q.pool), ...shuffle(items)]){
+      const v = o[field]; if(seen.has(v.toLowerCase())) continue;
+      seen.add(v.toLowerCase()); wrong.push(v); if(wrong.length >= Q.n-1) break;
+    }
+    Q.opts = shuffle([right, ...wrong]); Q.right = right; Q.answered=false;
+    $('qPrompt').textContent = promptText;
+    $('qChoices').innerHTML = Q.opts.map((o,k)=>`<button class="choice" data-k="${k}"><span class="k">${k+1}</span><span>${esc(o)}</span></button>`).join('');
+    $('qPos').textContent = 'Question ' + (Q.i+1) + ' of ' + Q.order.length;
+    $('qScore').textContent = Q.score + ' correct';
+    $('qBar').style.width = (Q.i / Q.order.length * 100) + '%';
+    $('qFeedback').textContent=''; $('qFeedback').className='feedback';
+    $('qNext').disabled = true;
+    $('qNext').textContent = Q.i === Q.order.length-1 ? 'See results' : 'Next question';
+  }
+  function pick(k){
+    if(!Q || Q.answered) return;
+    Q.answered = true;
+    const btns = [...$('qChoices').children];
+    const chosen = Q.opts[k];
+    btns.forEach((b,j)=>{ b.disabled=true; if(Q.opts[j]===Q.right) b.classList.add('right'); });
+    if(chosen === Q.right){ Q.score++; $('qFeedback').textContent='Correct.'; $('qFeedback').className='feedback ok'; }
+    else { btns[k].classList.add('wrong'); Q.missed.push(Q.order[Q.i]); $('qFeedback').textContent='Not quite. The answer is: ' + Q.right; $('qFeedback').className='feedback bad'; }
+    $('qScore').textContent = Q.score + ' correct';
+    $('qNext').disabled = false; $('qNext').focus();
+  }
+  $('qChoices').addEventListener('click', e => { const b = e.target.closest('.choice'); if(b) pick(+b.dataset.k); });
+  $('qNext').onclick = () => { if(Q.i < Q.order.length-1){ Q.i++; showQ(); } else finishQuiz(); };
+  $('qQuit').onclick = () => finishQuiz(true);
+  function finishQuiz(early){
+    const done = early ? Q.i + (Q.answered?1:0) : Q.order.length;
+    $('quizRun').hidden = true; $('quizDone').hidden = false;
+    $('dScore').textContent = (done ? Math.round(Q.score/done*100) : 0) + '%';
+    $('dLine').textContent = Q.score + ' of ' + done + ' correct' + (early && done < Q.order.length ? ' (ended early)' : '') + '.';
+    $('missedWrap').hidden = !Q.missed.length; $('retryMissed').hidden = !Q.missed.length;
+    $('missedList').innerHTML = Q.missed.map(m=>`<li><strong>${esc(m.q)}</strong><br><span class="a">${esc(m.a)}</span></li>`).join('');
+    stepLabel($('quizStepUp'), 'Quiz again');
+  }
+  $('startQuiz').onclick = () => { if(items.length>=2){ const p = poolNow(); startQuiz(p, p); } };
+  $('retryMissed').onclick = () => startQuiz(Q.missed, Q.pool);
+  $('quizStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startQuiz(p, p); };
+  $('retryAll').onclick = () => { $('quizDone').hidden = true; $('quizSetup').hidden = false; };
+  document.addEventListener('keydown', e => {
+    if($('quizRun').hidden || $('tab-quiz').hidden || e.target.matches('input,textarea,select')) return;
+    if(/^[1-6]$/.test(e.key) && +e.key <= (Q.opts||[]).length) pick(+e.key-1);
+    else if(e.key==='Enter' && Q.answered && document.activeElement !== $('qNext')) $('qNext').click();
+  });
+
+  // ---------- matching ----------
+  let M = null, timer = null;
+  function startMatch(){
+    const size = +$('roundSize').value;
+    const order = shuffle(poolNow()), rounds = [];
+    for(let i=0;i<order.length;i+=size) rounds.push(order.slice(i,i+size));
+    if(rounds.length>1 && rounds[rounds.length-1].length===1){ rounds[rounds.length-2].push(rounds.pop()[0]); }
+    M = { rounds, r:0, matched:0, total:order.length, miss:0, start:Date.now(), selQ:null, selA:null };
+    $('matchSetup').hidden = true; $('matchDone').hidden = true; $('matchRun').hidden = false;
+    clearInterval(timer); timer = setInterval(tick, 500); tick();
+    showRound();
+  }
+  function fmt(ms){ const s = Math.floor(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+  function tick(){ if(M) $('mTime').textContent = fmt(Date.now()-M.start); }
+  function showRound(){
+    const set = M.rounds[M.r];
+    M.left = set.length; M.selQ = M.selA = null;
+    $('colQ').innerHTML = shuffle(set).map(it=>`<button class="tile q" data-id="${it.id}">${esc(it.q)}</button>`).join('');
+    $('colA').innerHTML = shuffle(set).map(it=>`<button class="tile a" data-id="${it.id}">${esc(it.a)}</button>`).join('');
+    $('mRound').textContent = (M.r+1) + ' of ' + M.rounds.length;
+    $('mMatched').textContent = M.matched + ' of ' + M.total;
+    $('mMiss').textContent = M.miss;
+    $('mNext').hidden = true;
+  }
+  function tap(btn){
+    if(btn.classList.contains('done')) return;
+    const isQ = btn.classList.contains('q');
+    const col = isQ ? $('colQ') : $('colA');
+    col.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));
+    if((isQ ? M.selQ : M.selA) === btn){ if(isQ) M.selQ=null; else M.selA=null; return; }
+    btn.classList.add('sel'); if(isQ) M.selQ = btn; else M.selA = btn;
+    if(M.selQ && M.selA){
+      const q = M.selQ, a = M.selA;
+      const qi = items.find(x=>x.id===q.dataset.id), ai = items.find(x=>x.id===a.dataset.id);
+      if(q.dataset.id === a.dataset.id || (qi && ai && qi.a === ai.a)){
+        [q,a].forEach(x=>{ x.classList.remove('sel'); x.classList.add('done'); x.disabled = true; });
+        M.matched++; M.left--; $('mMatched').textContent = M.matched + ' of ' + M.total;
+        if(M.left===0){
+          if(M.r < M.rounds.length-1){ $('mNext').hidden = false; $('mNext').focus(); }
+          else finishMatch();
+        }
+      } else {
+        M.miss++; $('mMiss').textContent = M.miss;
+        [q,a].forEach(x=>{ x.classList.remove('sel'); x.classList.add('miss'); setTimeout(()=>x.classList.remove('miss'), 450); });
+      }
+      M.selQ = M.selA = null;
+    }
+  }
+  $('colQ').addEventListener('click', e => { const b=e.target.closest('.tile'); if(b) tap(b); });
+  $('colA').addEventListener('click', e => { const b=e.target.closest('.tile'); if(b) tap(b); });
+  $('mNext').onclick = () => { M.r++; showRound(); };
+  $('mQuit').onclick = () => finishMatch(true);
+  function finishMatch(early){
+    clearInterval(timer);
+    $('matchRun').hidden = true; $('matchDone').hidden = false;
+    $('mdTime').textContent = fmt(Date.now()-M.start);
+    stepLabel($('matchStepUp'), 'Match again');
+    $('mdLine').textContent = 'Matched ' + M.matched + ' of ' + M.total + ' with ' + M.miss + (M.miss===1?' miss':' misses') + (early && M.matched<M.total ? ' (ended early).' : '.');
+  }
+  $('startMatch').onclick = () => { if(items.length>=2) startMatch(); };
+  $('mAgain').onclick = () => { $('matchDone').hidden = true; $('matchSetup').hidden = false; };
+  $('matchStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); startMatch(); };
+
+  load(); buildPad(); $('usePad').checked = data.pad === undefined ? touchy : !!data.pad; applyPad(); renderSets(); renderList(); showTab(justSeeded ? 'spell' : 'edit');
+})();
+</script>
+</body>
+</html>
