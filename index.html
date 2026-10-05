@@ -102,6 +102,9 @@ input.spell.bad{border-color:var(--bad);background:var(--bad-bg)}
 .pad button.wide{flex:0 1 22%;font-size:16px}
 .pad button.space{flex:0 1 40%;font-size:16px;color:var(--muted)}
 .pad button:disabled{opacity:.4}
+.pad button.shift{flex:0 1 14%;font-size:20px}
+.pad button.shift.on{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.pad .prow button.back{flex:0 1 14%}
 .word{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(40px,11vw,64px);font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:6px 0 8px;overflow-wrap:anywhere}
 .pron{margin:0 0 4px;font-size:20px}
 .pron .lbl{color:var(--muted);font-size:15px;display:inline-block;min-width:92px}
@@ -211,6 +214,14 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
         <label>Voice speed
           <select id="rate"><option value="0.95">Normal</option><option value="0.7">Slow</option></select>
         </label>
+        <label>Uppercase letters
+          <select id="caps" class="capsSel">
+            <option value="none">don't matter</option>
+            <option value="first">first letter must be uppercase</option>
+            <option value="exact">must match the list exactly</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" class="capSay" checked> Say the uppercase letter out loud</label>
         <label class="check"><input type="checkbox" id="readDef" checked> Read the definition after the word</label>
         <label class="check"><input type="checkbox" id="usePad"> Use on-screen letter pad (no phone keyboard)</label>
       </div>
@@ -267,6 +278,15 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
             <option value="both">both columns</option>
           </select>
         </label>
+        <label>Uppercase letters
+          <select class="capsSel">
+            <option value="none">as typed in the list</option>
+            <option value="first">first letter uppercase</option>
+            <option value="exact">exactly as in the list</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" class="capSay" checked> Say the uppercase letter out loud</label>
+        <label class="check"><input type="checkbox" id="capReq" checked> He must say the uppercase letter too</label>
         <label class="check"><input type="checkbox" id="showSnd" checked> Show the "sounds like" spelling</label>
       </div>
       <button class="btn" id="startSay">Start practice</button>
@@ -289,6 +309,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
         <button class="sayBtn small" id="pSlow">Slowly, by syllable</button>
         <button class="sayBtn mic" id="pMic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>Say it</span></button>
       </div>
+      <p class="hint" id="pSayHint" hidden style="margin:2px 0 0"></p>
       <div class="feedback" id="pFeedback" aria-live="polite"></div>
       <div class="row">
         <button class="btn" id="pNext">Next word</button>
@@ -622,6 +643,16 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       data.cur = data.sets.find(s => s.name === 'Spelling words').id;
       data.range = 5;
     }
+    // This week's words: replaces the Spelling words list once per new week
+    const WEEK = { id: '2026-10-05', name: 'Spelling words', words: [["analyze", "To study something carefully.", "an-a-lyze", "AN-uh-lize"], ["accurate", "Correct and free from mistakes.", "ac-cu-rate", "AK-yur-it"], ["conclude", "To decide after thinking about the facts.", "con-clude", "kun-KLOOD"], ["contrast", "To show how things are different.", "con-trast", "kun-TRAST"], ["evidence", "Facts or information that support an idea.", "ev-i-dence", "EV-ih-dunss"], ["essential", "Very important.", "es-sen-tial", "ih-SEN-shul"], ["familiar", "Known or recognized.", "fa-mil-iar", "fuh-MIL-yer"], ["generate", "To create something.", "gen-er-ate", "JEN-uh-rayt"], ["identify", "To name or recognize something.", "i-den-ti-fy", "eye-DEN-tih-fy"], ["influence", "The power to affect someone or something.", "in-flu-ence", "IN-floo-unss"], ["perspective", "The way someone sees or understands something.", "per-spec-tive", "per-SPEK-tiv"], ["relevant", "Connected to the topic or situation.", "rel-e-vant", "REL-uh-vunt"], ["significant", "Important or meaningful.", "sig-nif-i-cant", "sig-NIF-ih-kunt"], ["sufficient", "Enough for what is needed.", "suf-fi-cient", "suh-FISH-unt"], ["maintain", "To keep something in good condition or continue it.", "main-tain", "mayn-TAYN"]] };
+    if(data.week !== WEEK.id){
+      data.week = WEEK.id;
+      let set = data.sets.find(st => st.name === WEEK.name);
+      if(!set){ set = { id: uid(), name: WEEK.name, items: [] }; data.sets.push(set); }
+      set.items = WEEK.words.map(([q,a,syl,snd]) => ({ id: uid(), q, a, syl, snd }));
+      if(!set.caps || set.caps === 'none') set.caps = 'first';
+      data.cur = set.id; data.range = 5; justSeeded = true;
+    }
     if(!data.sets.some(s => s.id === data.cur)) data.cur = data.sets[0].id;
     data.sets.forEach(st => st.items.forEach(withPron));
     items = curSet().items;
@@ -785,6 +816,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===name));
     ['edit','spell','say','phon','quiz','match'].forEach(t => $('tab-'+t).hidden = t!==name);
     if(name === 'phon') fillGroups();
+    if(name === 'spell' || name === 'say') syncCaps();
     if(name === 'say') $('sayCols').value = curSet().sayCols || (looksLikeCapitals() ? 'both' : 'q');
     if(name !== 'say') stopListening();
     $('sayNeed').textContent = items.length ? '' : 'Add some words to this list first.'; $('startSay').disabled = !items.length;
@@ -841,16 +873,31 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   const ROWS = ['qwertyuiop','asdfghjkl','zxcvbnm'];
   function buildPad(){
     const pad = $('pad');
-    pad.innerHTML = ROWS.map((r,i) => '<div class="prow">' + [...r].map(c=>`<button type="button" data-k="${c}">${c}</button>`).join('') +
-      (i===2 ? '<button type="button" class="wide" data-k="back" aria-label="Backspace">⌫</button>' : '') + '</div>').join('') +
+    pad.innerHTML = ROWS.map((r,i) => '<div class="prow">' +
+      (i===2 ? '<button type="button" class="shift" data-k="shift" aria-label="Uppercase letter (Shift)" aria-pressed="false">⇧</button>' : '') +
+      [...r].map(c=>`<button type="button" data-k="${c}">${c}</button>`).join('') +
+      (i===2 ? '<button type="button" class="back" data-k="back" aria-label="Backspace">⌫</button>' : '') + '</div>').join('') +
       '<div class="prow"><button type="button" data-k="\'">\'</button><button type="button" data-k="-">-</button><button type="button" class="space" data-k=" ">space</button><button type="button" class="wide" data-k="clear">Clear</button></div>';
+  }
+  let padShift = false;
+  function setShift(on){
+    padShift = on;
+    $('pad').querySelectorAll('button[data-k]').forEach(b => {
+      const k = b.dataset.k;
+      if(/^[a-z]$/.test(k)) b.textContent = on ? k.toUpperCase() : k;
+      if(k === 'shift'){ b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }
+    });
   }
   function padKey(k){
     if(!S || S.done || $('spellRun').hidden) return;
     const inp = $('sInput');
+    if(k==='shift'){ setShift(!padShift); return; }
     if(k==='back') inp.value = inp.value.slice(0,-1);
     else if(k==='clear') inp.value = '';
-    else if(inp.value.length < 60) inp.value += k;
+    else if(inp.value.length < 60){
+      if(padShift && /^[a-z]$/.test(k)){ k = k.toUpperCase(); setShift(false); }
+      inp.value += k;
+    }
     if(inp.classList.contains('bad')) inp.className = 'spell';
   }
   $('pad').addEventListener('pointerdown', e => { const b = e.target.closest('button'); if(b){ e.preventDefault(); padKey(b.dataset.k); } });
@@ -871,13 +918,51 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     if(e.key==='Enter' && e.target.matches('button')) return; // let the focused button handle it
     if(e.key==='Enter'){ e.preventDefault(); if(S.done) $('sNext').click(); else checkS(); }
     else if(e.key==='Backspace'){ e.preventDefault(); padKey('back'); }
-    else if(/^[a-zA-Z' -]$/.test(e.key)){ e.preventDefault(); padKey(e.key.toLowerCase()); }
+    else if(/^[a-zA-Z' -]$/.test(e.key)){ e.preventDefault(); padKey(e.key); }
   });
   $('usePad').onchange = () => { data.pad = $('usePad').checked; save(); applyPad(); };
 
   // ---------- spelling ----------
   let S = null;
-  const norm = s => s.trim().toLowerCase().replace(/\s+/g,' ').replace(/[’‘]/g,"'");
+  const tidy = s => s.trim().replace(/\s+/g,' ').replace(/[’‘]/g,"'");
+  const norm = s => tidy(s).toLowerCase();
+  const capsMode = () => (curSet() && curSet().caps) || 'none';
+  const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1);
+  const cased = t => capsMode() === 'first' ? capFirst(t) : t;
+  function capLetters(word){
+    if(capsMode() === 'none') return [];
+    const w = cased(word.trim());
+    const caps = capsMode() === 'first' ? [w.charAt(0)] : (w.match(/[A-Z]/g) || []);
+    return caps.filter(c => /[A-Z]/.test(c));
+  }
+  function capPhrase(word){
+    if(curSet().capSay === false) return null;
+    const caps = capLetters(word);
+    return caps.length ? caps.map(c => 'uppercase ' + c + '.').join(' ') : null;
+  }
+  // how speech recognition tends to write spoken letter names
+  const LETTER_SOUNDS = {a:['a','ay','eh','hey','8'],b:['b','be','bee'],c:['c','see','sea','si'],d:['d','dee','the'],e:['e','ee'],f:['f','ef','eff'],g:['g','gee','ji'],h:['h','aitch','age','each'],i:['i','eye','aye'],j:['j','jay'],k:['k','kay','okay','ok','cay'],l:['l','el','elle','ell'],m:['m','em','um'],n:['n','en','and','in'],o:['o','oh','owe','0'],p:['p','pee','pea'],q:['q','queue','cue','kyu'],r:['r','are','our','ar'],s:['s','es','ess','yes'],t:['t','tea','tee','ti'],u:['u','you','yu'],v:['v','vee','we'],w:['w','double'],x:['x','ex','eggs'],y:['y','why','wye'],z:['z','zee','zed','see']};
+  // returns the letters heard after "uppercase" (also accepts "upper case" and "capital")
+  function heardUppercase(alt){
+    const toks = alt.replace(/\bupper case\b/g,'uppercase').replace(/\bcapital\b/g,'uppercase').split(' ');
+    const out = [];
+    toks.forEach((t,i) => { if(t === 'uppercase') out.push(toks[i+1] || ''); });
+    return out;
+  }
+  const letterMatches = (heard, L) => (LETTER_SOUNDS[L.toLowerCase()] || [L.toLowerCase()]).includes(heard);
+  const needsCapSaid = it => it.id.endsWith(':q') && $('capReq').checked && capLetters(it.q).length > 0;
+  $('capReq').onchange = () => { curSet().capReq = $('capReq').checked; save(); };
+  const withCap = (word, extra) => [word, capPhrase(word)].concat(extra || []).filter(Boolean);
+  function syncCaps(){
+    document.querySelectorAll('.capsSel').forEach(x => x.value = capsMode());
+    document.querySelectorAll('.capSay').forEach(x => x.checked = curSet().capSay !== false);
+    $('capReq').checked = curSet().capReq !== false;
+  }
+  document.querySelectorAll('.capsSel').forEach(x => x.onchange = () => { curSet().caps = x.value; save(); syncCaps(); });
+  document.querySelectorAll('.capSay').forEach(x => x.onchange = () => { curSet().capSay = x.checked; save(); syncCaps(); });
+  const expected = it => capsMode() === 'first' ? it.q.charAt(0).toUpperCase() + it.q.slice(1) : it.q;
+  const spelledRight = (typed, it) => capsMode() === 'none' ? norm(typed) === norm(it.q) : tidy(typed) === tidy(expected(it));
+
   function startSpell(order, pool){
     S = { order: shuffle(order), pool, i:0, score:0, missed:[], tries:0, done:false };
     $('spellSetup').hidden = true; $('spellDone').hidden = true; $('spellRun').hidden = false;
@@ -892,7 +977,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     inp.name = 'sp-' + uid(); // fresh name each word so Chrome has no history to suggest from
     $('sDef').textContent = it.a; $('sDef').hidden = canSpeak; $('showDef').hidden = !canSpeak;
     $('sFeedback').textContent=''; $('sFeedback').className='feedback';
-    $('sCheck').hidden=false; $('sNext').hidden=true; $('sPh').hidden = true;
+    $('sCheck').hidden=false; $('sNext').hidden=true; $('sPh').hidden = true; setShift(false);
     $('sNext').textContent = S.i === S.order.length-1 ? 'See results' : 'Next word';
     $('sPos').textContent = 'Word ' + (S.i+1) + ' of ' + S.order.length;
     $('sScore').textContent = S.score + ' correct';
@@ -902,7 +987,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   }
   function sayCurrent(withDef){
     const it = S.order[S.i];
-    const parts = [it.q];
+    const parts = withCap(it.q);
     if(withDef && $('readDef').checked) parts.push(it.a, it.q);
     say(parts);
   }
@@ -916,20 +1001,24 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     const it = S.order[S.i], inp = $('sInput');
     if(!inp.value.trim()){ focusInput(); return; }
     S.tries++;
-    if(norm(inp.value) === norm(it.q)){
+    const caseOnly = !spelledRight(inp.value, it) && norm(inp.value) === norm(it.q);
+    if(spelledRight(inp.value, it)){
       S.done = true; S.score++;
       inp.className='spell ok'; inp.disabled = true;
       $('sFeedback').textContent = S.tries === 1 ? 'Correct.' : 'Correct on the second try.'; $('sFeedback').className='feedback ok';
       endWord();
     } else if(S.tries < 2){
       inp.className='spell bad';
-      $('sFeedback').textContent = 'Not quite. Listen again and try once more.'; $('sFeedback').className='feedback bad';
+      $('sFeedback').textContent = caseOnly
+        ? (capsMode() === 'first' ? 'Almost. The letters are right, but it needs to start with an uppercase letter.' : 'Almost. The letters are right, but check your uppercase letters.')
+        : 'Not quite. Listen again and try once more.';
+      $('sFeedback').className='feedback bad';
       sayCurrent(false); if(padOn) inp.value=''; else inp.select();
     } else {
-      S.done = true; S.missed.push({ it, typed: inp.value.trim() });
+      S.done = true; S.missed.push({ it, typed: inp.value.trim(), want: expected(it) });
       inp.className='spell bad'; inp.disabled = true;
       $('sFeedback').className='feedback bad';
-      $('sFeedback').innerHTML = 'The correct spelling is:<div class="reveal">' + esc(it.q) + '</div>';
+      $('sFeedback').innerHTML = 'The correct spelling is:<div class="reveal">' + esc(expected(it)) + '</div>';
       say([it.q]);
       endWord();
     }
@@ -938,7 +1027,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   function showSpellPh(){
     const it = S.order[S.i], parts = phParts(it);
     if(!parts.length){ $('sPh').hidden = true; return; }
-    $('sPh').innerHTML = '<div class="phWord">' + markWord(it.q, parts) + '</div><ul class="phList">' + phListHtml(it.q, parts) + '</ul>';
+    $('sPh').innerHTML = '<div class="phWord">' + markWord(expected(it), parts) + '</div><ul class="phList">' + phListHtml(it.q, parts) + '</ul>';
     $('sPh').hidden = false;
   }
   function endWord(){ showSpellPh(); $('sCheck').hidden = true; $('sNext').hidden = false; $('sNext').focus(); }
@@ -953,7 +1042,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('sdScore').textContent = (done ? Math.round(S.score/done*100) : 0) + '%';
     $('sdLine').textContent = S.score + ' of ' + done + ' spelled correctly' + (early && done < S.order.length ? ' (ended early)' : '') + '.';
     $('sMissedWrap').hidden = !S.missed.length; $('sRetryMissed').hidden = !S.missed.length;
-    $('sMissedList').innerHTML = S.missed.map(m=>`<li><strong>${esc(m.it.q)}</strong><br><span class="a">You typed: ${esc(m.typed)}</span></li>`).join('');
+    $('sMissedList').innerHTML = S.missed.map(m=>`<li><strong>${esc(m.want || m.it.q)}</strong><br><span class="a">You typed: ${esc(m.typed)}</span></li>`).join('');
     stepLabel($('spellStepUp'), 'Spell again');
   }
   $('startSpell').onclick = () => { if(items.length){ const p = poolNow(); startSpell(p, p); } };
@@ -977,8 +1066,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     const it = P.order[P.i]; P.tries = 0; P.ok = false;
     const sy = sylOf(it);
     const pp = it.noPh ? [] : phParts(it);
-    $('pWord').innerHTML = markWord(it.q, pp);
+    const shown = it.id.endsWith(':q') ? cased(it.q) : it.q;
+    $('pWord').innerHTML = markWord(shown, pp);
     $('pTip').textContent = it.tip || ''; $('pTip').hidden = !it.tip;
+    const need = SR && needsCapSaid(it);
+    $('pSayHint').hidden = !need;
+    if(need) $('pSayHint').innerHTML = 'Say: <strong>' + esc(cased(it.q)) + ', ' + capLetters(it.q).map(c => 'uppercase ' + c).join(', ') + '</strong>';
     $('pPh').innerHTML = phListHtml(it.q, pp);
     $('pSyl').innerHTML = showSyl(sy.text) + (sy.guess ? ' <span class="guess">(best guess)</span>' : '');
     $('pSnd').innerHTML = it.snd ? showSnd(it.snd) : '';
@@ -989,9 +1082,9 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('pScore').textContent = SR ? P.got + ' said correctly' : '';
     $('pBar').style.width = (P.i / P.order.length * 100) + '%';
     $('pNext').textContent = P.i === P.order.length-1 ? 'See results' : 'Next word';
-    say([it.q], 0.9);
+    say(it.id.endsWith(':q') ? withCap(it.q) : [it.q], 0.9);
   }
-  $('pHear').onclick = () => say([P.order[P.i].q], 0.9);
+  $('pHear').onclick = () => { const it = P.order[P.i]; say(it.id.endsWith(':q') ? withCap(it.q) : [it.q], 0.9); };
   $('pSlow').onclick = () => sayParts(P.order[P.i]);
   $('pMic').onclick = () => {
     if(!SR || !P) return;
@@ -1009,9 +1102,24 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       const tq = squash(target);
       const hit = alts.some(a => a === target || (' ' + a + ' ').includes(' ' + target + ' ') || squash(a).includes(tq));
       P.tries++;
-      if(hit){
+      let capOk = true, capMsg = '';
+      if(hit && needsCapSaid(it)){
+        const want = capLetters(it.q);
+        const said = alts.map(heardUppercase);
+        capOk = said.some(h => h.length >= want.length && want.every((L,i) => letterMatches(h[i], L)));
+        if(!capOk){
+          const anyUpper = said.some(h => h.length);
+          const phrase = cased(it.q) + ', ' + want.map(c => 'uppercase ' + c).join(', ');
+          capMsg = anyUpper
+            ? 'I heard the word and "uppercase," but not the letter ' + want.join(', ') + '. Try again: "' + phrase + '."'
+            : 'Good, that\'s the word. Now say the uppercase letter too: "' + phrase + '."';
+        }
+      }
+      if(hit && !capOk){
+        $('pFeedback').textContent = capMsg; $('pFeedback').className = 'feedback bad';
+      } else if(hit){
         if(!P.ok){ P.ok = true; P.got++; }
-        $('pFeedback').textContent = 'Nice. That sounded like "' + it.q + '".'; $('pFeedback').className = 'feedback ok';
+        $('pFeedback').textContent = needsCapSaid(it) ? 'Nice. That was "' + cased(it.q) + '" with the uppercase ' + capLetters(it.q).join(', ') + '.' : 'Nice. That sounded like "' + (it.id.endsWith(':q') ? cased(it.q) : it.q) + '".'; $('pFeedback').className = 'feedback ok';
       } else {
         $('pFeedback').textContent = 'I heard "' + (alts[0] || '…') + '". Try "Slowly, by syllable", then say it again.'; $('pFeedback').className = 'feedback bad';
       }
@@ -1043,7 +1151,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       $('pdLine').textContent = P.got + ' of ' + done + ' said correctly' + (early && done < P.order.length ? ' (ended early)' : '') + '.';
     } else { $('pdScore').textContent = done; $('pdLine').textContent = 'words practiced.'; }
     $('pMissedWrap').hidden = !P.missed.length; $('pRetryMissed').hidden = !P.missed.length;
-    $('pMissedList').innerHTML = P.missed.map(m => `<li><strong>${esc(m.q)}</strong><br><span class="a">${showSyl(sylOf(m).text)}${m.snd ? '&nbsp;&nbsp;' + showSnd(m.snd) : ''}</span></li>`).join('');
+    $('pMissedList').innerHTML = P.missed.map(m => `<li><strong>${esc(m.id.endsWith(':q') ? cased(m.q) : m.q)}</strong><br><span class="a">${showSyl(sylOf(m).text)}${m.snd ? '&nbsp;&nbsp;' + showSnd(m.snd) : ''}</span></li>`).join('');
     stepLabel($('sayStepUp'), 'Practice again');
   }
   const sayTerms = () => buildTerms(poolNow(), $('sayCols').value);
@@ -1086,7 +1194,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     const right = it.q.slice(p.s, p.s+p.l).toLowerCase();
     const opts = [right]; p.alts.forEach(a => { if(!opts.includes(a) && opts.length < 4) opts.push(a); });
     H.opts = shuffle(opts); H.right = right; H.answered = false;
-    $('hWord').innerHTML = markWord(it.q, parts.map((x,j)=> j===k ? x : null).filter(Boolean), 0);
+    $('hWord').innerHTML = markWord(cased(it.q), parts.map((x,j)=> j===k ? x : null).filter(Boolean), 0);
     $('hDef').textContent = it.a;
     $('hChoices').innerHTML = H.opts.map((o,j)=>`<button class="choice letters" data-k="${j}"><span class="k">${j+1}</span><span>${esc(showAlt(o))}</span></button>`).join('');
     $('hFeedback').textContent = ''; $('hFeedback').className = 'feedback'; $('hPh').hidden = true;
@@ -1094,7 +1202,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('hScore').textContent = H.score + ' correct';
     $('hBar').style.width = (H.i / H.order.length * 100) + '%';
     $('hNext').disabled = true; $('hNext').textContent = H.i === H.order.length-1 ? 'See results' : 'Next';
-    if($('phSay').checked) say([it.q], 0.9);
+    if($('phSay').checked) say(withCap(it.q), 0.9);
   }
   function pickH(j){
     if(!H || H.answered) return;
@@ -1104,13 +1212,13 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     btns.forEach((b,x) => { b.disabled = true; if(H.opts[x] === H.right) b.classList.add('right'); });
     if(H.opts[j] === H.right){ H.score++; $('hFeedback').textContent = 'Correct.'; $('hFeedback').className = 'feedback ok'; }
     else { btns[j].classList.add('wrong'); H.missed.push(H.order[H.i]); $('hFeedback').textContent = 'Not quite. It’s ' + H.right + '.'; $('hFeedback').className = 'feedback bad'; }
-    $('hWord').innerHTML = markWord(it.q, [p]);
+    $('hWord').innerHTML = markWord(cased(it.q), [p]);
     $('hPh').innerHTML = '<ul class="phList">' + phListHtml(it.q, phParts(it), k) + '</ul>'; $('hPh').hidden = false;
     $('hScore').textContent = H.score + ' correct';
     $('hNext').disabled = false; $('hNext').focus();
   }
   $('hChoices').addEventListener('click', e => { const b = e.target.closest('.choice'); if(b) pickH(+b.dataset.k); });
-  $('hHear').onclick = () => say([H.order[H.i].it.q], 0.9);
+  $('hHear').onclick = () => say(withCap(H.order[H.i].it.q), 0.9);
   $('hSlow').onclick = () => sayParts(H.order[H.i].it);
   $('hNext').onclick = () => { if(H.i < H.order.length-1){ H.i++; showH(); } else finishPh(); };
   $('hQuit').onclick = () => finishPh(true);
@@ -1121,7 +1229,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('hdScore').textContent = (done ? Math.round(H.score/done*100) : 0) + '%';
     $('hdLine').textContent = H.score + ' of ' + done + ' correct' + (early && done < H.order.length ? ' (ended early)' : '') + '.';
     $('hMissedWrap').hidden = !H.missed.length; $('hRetryMissed').hidden = !H.missed.length;
-    $('hMissedList').innerHTML = H.missed.map(m => `<li><span class="phWord" style="font-size:24px">${markWord(m.it.q, [m.p])}</span>${phListHtml(m.it.q, phParts(m.it), m.k).replace(/^<li>|<\/li>$/g,'')}</li>`).join('');
+    $('hMissedList').innerHTML = H.missed.map(m => `<li><span class="phWord" style="font-size:24px">${markWord(cased(m.it.q), [m.p])}</span>${phListHtml(m.it.q, phParts(m.it), m.k).replace(/^<li>|<\/li>$/g,'')}</li>`).join('');
     stepLabel($('phStepUp'), 'Patterns again');
   }
   $('startPh').onclick = () => { const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p); };
@@ -1154,8 +1262,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       seen.add(v.toLowerCase()); wrong.push(v); if(wrong.length >= Q.n-1) break;
     }
     Q.opts = shuffle([right, ...wrong]); Q.right = right; Q.answered=false;
-    $('qPrompt').textContent = promptText;
-    $('qChoices').innerHTML = Q.opts.map((o,k)=>`<button class="choice" data-k="${k}"><span class="k">${k+1}</span><span>${esc(o)}</span></button>`).join('');
+    $('qPrompt').textContent = Q.dir==='qa' ? cased(promptText) : promptText;
+    $('qChoices').innerHTML = Q.opts.map((o,k)=>`<button class="choice" data-k="${k}"><span class="k">${k+1}</span><span>${esc(Q.dir==='aq' ? cased(o) : o)}</span></button>`).join('');
     $('qPos').textContent = 'Question ' + (Q.i+1) + ' of ' + Q.order.length;
     $('qScore').textContent = Q.score + ' correct';
     $('qBar').style.width = (Q.i / Q.order.length * 100) + '%';
@@ -1170,7 +1278,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     const chosen = Q.opts[k];
     btns.forEach((b,j)=>{ b.disabled=true; if(Q.opts[j]===Q.right) b.classList.add('right'); });
     if(chosen === Q.right){ Q.score++; $('qFeedback').textContent='Correct.'; $('qFeedback').className='feedback ok'; }
-    else { btns[k].classList.add('wrong'); Q.missed.push(Q.order[Q.i]); $('qFeedback').textContent='Not quite. The answer is: ' + Q.right; $('qFeedback').className='feedback bad'; }
+    else { btns[k].classList.add('wrong'); Q.missed.push(Q.order[Q.i]); $('qFeedback').textContent='Not quite. The answer is: ' + (Q.dir==='aq' ? cased(Q.right) : Q.right); $('qFeedback').className='feedback bad'; }
     $('qScore').textContent = Q.score + ' correct';
     $('qNext').disabled = false; $('qNext').focus();
   }
@@ -1183,7 +1291,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('dScore').textContent = (done ? Math.round(Q.score/done*100) : 0) + '%';
     $('dLine').textContent = Q.score + ' of ' + done + ' correct' + (early && done < Q.order.length ? ' (ended early)' : '') + '.';
     $('missedWrap').hidden = !Q.missed.length; $('retryMissed').hidden = !Q.missed.length;
-    $('missedList').innerHTML = Q.missed.map(m=>`<li><strong>${esc(m.q)}</strong><br><span class="a">${esc(m.a)}</span></li>`).join('');
+    $('missedList').innerHTML = Q.missed.map(m=>`<li><strong>${esc(cased(m.q))}</strong><br><span class="a">${esc(m.a)}</span></li>`).join('');
     stepLabel($('quizStepUp'), 'Quiz again');
   }
   $('startQuiz').onclick = () => { if(items.length>=2){ const p = poolNow(); startQuiz(p, p); } };
@@ -1213,7 +1321,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   function showRound(){
     const set = M.rounds[M.r];
     M.left = set.length; M.selQ = M.selA = null;
-    $('colQ').innerHTML = shuffle(set).map(it=>`<button class="tile q" data-id="${it.id}">${esc(it.q)}</button>`).join('');
+    $('colQ').innerHTML = shuffle(set).map(it=>`<button class="tile q" data-id="${it.id}">${esc(cased(it.q))}</button>`).join('');
     $('colA').innerHTML = shuffle(set).map(it=>`<button class="tile a" data-id="${it.id}">${esc(it.a)}</button>`).join('');
     $('mRound').textContent = (M.r+1) + ' of ' + M.rounds.length;
     $('mMatched').textContent = M.matched + ' of ' + M.total;
