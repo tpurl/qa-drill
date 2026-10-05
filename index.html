@@ -221,7 +221,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
             <option value="exact">must match the list exactly</option>
           </select>
         </label>
-        <label class="check"><input type="checkbox" class="capSay" checked> Say the uppercase letter out loud</label>
+        <label class="check"><input type="checkbox" class="capSay"> Say the uppercase letter out loud</label>
         <label class="check"><input type="checkbox" id="readDef" checked> Read the definition after the word</label>
         <label class="check"><input type="checkbox" id="usePad"> Use on-screen letter pad (no phone keyboard)</label>
       </div>
@@ -285,8 +285,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
             <option value="exact">exactly as in the list</option>
           </select>
         </label>
-        <label class="check"><input type="checkbox" class="capSay" checked> Say the uppercase letter out loud</label>
-        <label class="check"><input type="checkbox" id="capReq" checked> He must say the uppercase letter too</label>
+        <label class="check"><input type="checkbox" class="capSay"> Say the uppercase letter out loud</label>
+        <label class="check"><input type="checkbox" id="capReq"> He must say the uppercase letter too</label>
         <label class="check"><input type="checkbox" id="showSnd" checked> Show the "sounds like" spelling</label>
       </div>
       <button class="btn" id="startSay">Start practice</button>
@@ -653,6 +653,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       if(!set.caps || set.caps === 'none') set.caps = 'first';
       data.cur = set.id; data.range = 5; justSeeded = true;
     }
+    if(!data.capReqOff){ data.capReqOff = true; data.sets.forEach(st => { st.capReq = false; }); } // saying "uppercase" no longer required by default
+    if(!data.capSayOff){ data.capSayOff = true; data.sets.forEach(st => { st.capSay = false; }); } // voice no longer says "uppercase" by default
     if(!data.sets.some(s => s.id === data.cur)) data.cur = data.sets[0].id;
     data.sets.forEach(st => st.items.forEach(withPron));
     items = curSet().items;
@@ -936,7 +938,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     return caps.filter(c => /[A-Z]/.test(c));
   }
   function capPhrase(word){
-    if(curSet().capSay === false) return null;
+    if(curSet().capSay !== true) return null;
     const caps = capLetters(word);
     return caps.length ? caps.map(c => 'uppercase ' + c + '.').join(' ') : null;
   }
@@ -955,8 +957,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   const withCap = (word, extra) => [word, capPhrase(word)].concat(extra || []).filter(Boolean);
   function syncCaps(){
     document.querySelectorAll('.capsSel').forEach(x => x.value = capsMode());
-    document.querySelectorAll('.capSay').forEach(x => x.checked = curSet().capSay !== false);
-    $('capReq').checked = curSet().capReq !== false;
+    document.querySelectorAll('.capSay').forEach(x => x.checked = curSet().capSay === true);
+    $('capReq').checked = curSet().capReq === true;
   }
   document.querySelectorAll('.capsSel').forEach(x => x.onchange = () => { curSet().caps = x.value; save(); syncCaps(); });
   document.querySelectorAll('.capSay').forEach(x => x.onchange = () => { curSet().capSay = x.checked; save(); syncCaps(); });
