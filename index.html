@@ -125,6 +125,18 @@ ul.phList b{color:var(--accent)}
 ul.phList .tip{color:var(--muted);display:block;font-size:15px}
 .choice.letters{justify-content:flex-start;align-items:center}
 .choice.letters span:last-child{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em}
+.timeBest{margin:10px 0 0;font-size:15px;color:var(--muted)}
+.timeBest b{color:var(--ink)}
+.meta .clock{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+.timeBox{background:var(--bg);border-radius:8px;padding:12px 14px;margin:0 0 16px}
+.timeBox .tl{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.timeBox .tl small{font-family:"Atkinson Hyperlegible",system-ui,sans-serif;font-size:15px;font-weight:400;color:var(--muted)}
+.timeBox .badge{display:inline-block;margin:6px 0 2px;padding:3px 10px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-weight:700;font-size:15px}
+.timeBox .note{color:var(--muted);font-size:15px;margin-top:4px}
+ol.top{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-variant-numeric:tabular-nums}
+ol.top li{display:grid;grid-template-columns:28px 64px 1fr;gap:8px;font-size:15px;padding:4px 6px;border-radius:6px}
+ol.top li.me{background:var(--ok-bg);font-weight:700}
+ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
 .defn{background:var(--bg);border-left:4px solid var(--rule);padding:8px 12px;border-radius:4px;margin:0 0 14px;color:var(--ink)}
 .reveal{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:.04em;color:var(--ok)}
 /* match */
@@ -226,11 +238,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       </div>
       <button class="btn" id="startSpell">Start spelling</button>
       <p class="hint" id="spellNeed" style="margin-bottom:0"></p>
+      <p class="timeBest" id="spellSetupBest"></p>
     </div>
 
     <div class="panel" id="spellRun" hidden>
       <div class="progress"><span id="sBar"></span></div>
-      <div class="meta"><span id="sPos"></span><span id="sScore"></span></div>
+      <div class="meta"><span id="sPos"></span><span class="clock" id="sClock">0:00</span><span id="sScore"></span></div>
       <div class="speak">
         <button class="sayBtn" id="sayWord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>Say the word</button>
         <button class="sayBtn small" id="saySlowS">Slowly, by syllable</button>
@@ -254,6 +267,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     <div class="panel" id="spellDone" hidden>
       <div class="big" id="sdScore"></div>
       <p id="sdLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="spellTimes"></div>
       <div class="row" style="margin-bottom:12px">
         <button class="btn" id="sRetryMissed">Retry missed</button>
         <button class="btn ghost" id="spellStepUp" hidden></button>
@@ -290,13 +304,14 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       </div>
       <button class="btn" id="startSay">Start practice</button>
       <p class="hint" id="sayNeed" style="margin-bottom:0"></p>
+      <p class="timeBest" id="saySetupBest"></p>
       <p class="hint" id="noMic" hidden style="margin-bottom:0">Speaking practice needs Chrome (or Safari) and a microphone. Listening and syllables still work here.</p>
       <p class="hint" id="fileMic" hidden style="margin-bottom:0">This page was opened as a file, so Chrome won't let it use the microphone. To practice speaking, close this tab and double-click <strong>Start Q&amp;A Drill</strong> in the same folder instead.</p>
     </div>
 
     <div class="panel" id="sayRun" hidden>
       <div class="progress"><span id="pBar"></span></div>
-      <div class="meta"><span id="pPos"></span><span id="pScore"></span></div>
+      <div class="meta"><span id="pPos"></span><span class="clock" id="pClock">0:00</span><span id="pScore"></span></div>
       <div class="word" id="pWord"></div>
       <p class="pron"><span class="lbl">Syllables</span> <span class="syl" id="pSyl"></span></p>
       <p class="pron" id="pSndRow"><span class="lbl">Sounds like</span> <span class="snd" id="pSnd"></span></p>
@@ -319,6 +334,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     <div class="panel" id="sayDone" hidden>
       <div class="big" id="pdScore"></div>
       <p id="pdLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="sayTimes"></div>
       <div class="row" style="margin-bottom:12px">
         <button class="btn" id="pRetryMissed">Retry missed</button>
         <button class="btn ghost" id="sayStepUp" hidden></button>
@@ -340,11 +356,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       </div>
       <button class="btn" id="startPh">Start patterns</button>
       <p class="hint" id="phNeed" style="margin-bottom:0"></p>
+      <p class="timeBest" id="phonSetupBest"></p>
     </div>
 
     <div class="panel" id="phRun" hidden>
       <div class="progress"><span id="hBar"></span></div>
-      <div class="meta"><span id="hPos"></span><span id="hScore"></span></div>
+      <div class="meta"><span id="hPos"></span><span class="clock" id="hClock">0:00</span><span id="hScore"></span></div>
       <div class="phWord" id="hWord"></div>
       <p class="hint" id="hDef" style="margin:0 0 12px"></p>
       <div class="speak" style="margin:0 0 14px">
@@ -363,6 +380,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     <div class="panel" id="phDone" hidden>
       <div class="big" id="hdScore"></div>
       <p id="hdLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="phTimes"></div>
       <div class="row" style="margin-bottom:12px">
         <button class="btn" id="hRetryMissed">Retry missed</button>
         <button class="btn ghost" id="phStepUp" hidden></button>
@@ -391,11 +409,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       </div>
       <button class="btn" id="startQuiz">Start quiz</button>
       <p class="hint" id="quizNeed" style="margin-bottom:0"></p>
+      <p class="timeBest" id="quizSetupBest"></p>
     </div>
 
     <div class="panel" id="quizRun" hidden>
       <div class="progress"><span id="qBar"></span></div>
-      <div class="meta"><span id="qPos"></span><span id="qScore"></span></div>
+      <div class="meta"><span id="qPos"></span><span class="clock" id="qClock">0:00</span><span id="qScore"></span></div>
       <div class="prompt" id="qPrompt"></div>
       <div class="choices" id="qChoices"></div>
       <div class="feedback" id="qFeedback" aria-live="polite"></div>
@@ -409,6 +428,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     <div class="panel" id="quizDone" hidden>
       <div class="big" id="dScore"></div>
       <p id="dLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="quizTimes"></div>
       <div class="row" style="margin-bottom:12px">
         <button class="btn" id="retryMissed">Retry missed</button>
         <button class="btn ghost" id="quizStepUp" hidden></button>
@@ -431,6 +451,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       </div>
       <button class="btn" id="startMatch">Start matching</button>
       <p class="hint" id="matchNeed" style="margin-bottom:0"></p>
+      <p class="timeBest" id="matchSetupBest"></p>
     </div>
 
     <div id="matchRun" hidden>
@@ -439,6 +460,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
         <span>Matched <b id="mMatched"></b></span>
         <span>Misses <b id="mMiss">0</b></span>
         <span>Time <b id="mTime">0:00</b></span>
+        <span id="mBestStat"></span>
       </div>
       <div class="board">
         <div class="col" id="colQ"></div>
@@ -453,6 +475,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     <div class="panel" id="matchDone" hidden>
       <div class="big" id="mdTime"></div>
       <p id="mdLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="matchTimes"></div>
       <div class="row">
         <button class="btn" id="mAgain">Play again</button>
         <button class="btn ghost" id="matchStepUp" hidden></button>
@@ -800,7 +823,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     });
   }
   const rangeVal = () => +document.querySelector('select.range').value || items.length;
-  function setRange(n){ data.range = n; save(); fillRanges(); }
+  function setRange(n){ data.range = n; save(); fillRanges(); if(typeof showAllSetupBest === 'function') showAllSetupBest(); }
   document.querySelectorAll('select.range').forEach(sel => sel.onchange = () => setRange(+sel.value));
   const poolNow = () => items.slice(0, rangeVal());
   const nextN = () => { const n = rangeVal(); return n < items.length ? Math.min(n+5, items.length) : 0; };
@@ -820,6 +843,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     ['edit','spell','say','phon','quiz','match'].forEach(t => $('tab-'+t).hidden = t!==name);
     if(name === 'phon') fillGroups();
     if(name === 'spell' || name === 'say') syncCaps();
+    showAllSetupBest();
     if(name === 'say') $('sayCols').value = curSet().sayCols || (looksLikeCapitals() ? 'both' : 'q');
     if(name !== 'say') stopListening();
     $('sayNeed').textContent = items.length ? '' : 'Add some words to this list first.'; $('startSay').disabled = !items.length;
@@ -831,7 +855,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   function stopAll(){
     if(window.speechSynthesis) speechSynthesis.cancel();
     clearInterval(timer);
-    stopListening();
+    stopListening(); for(const k in RUNS) delete RUNS[k];
     ['spellRun','spellDone','sayRun','sayDone','phRun','phDone','quizRun','quizDone','matchRun','matchDone'].forEach(id => $(id).hidden = true);
     ['spellSetup','saySetup','phSetup','quizSetup','matchSetup'].forEach(id => $(id).hidden = false);
   }
@@ -925,6 +949,70 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   });
   $('usePad').onchange = () => { data.pad = $('usePad').checked; save(); applyPad(); };
 
+  // ---------- timers and top times ----------
+  const PENALTY = 5, TOP_N = 5;
+  const RUNS = {};
+  const CLOCK = { spell:'sClock', say:'pClock', phon:'hClock', quiz:'qClock', match:'mTime' };
+  function runKey(mode){
+    let k = curSet().id + '|' + mode + '|' + rangeVal();
+    if(mode==='quiz') k += '|' + $('nChoices').value + $('direction').value;
+    if(mode==='match') k += '|' + $('roundSize').value;
+    if(mode==='say') k += '|' + $('sayCols').value;
+    if(mode==='phon') k += '|' + $('phGroup').value;
+    return k;
+  }
+  const bestsFor = key => ((data.best || {})[key] || []);
+  function fmtT(ms){ const s = Math.round(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+  function rangeLabel(){ const n = rangeVal(); return n >= items.length ? 'all ' + items.length : 'the first ' + n; }
+  function showSetupBest(mode){
+    const el = $(mode + 'SetupBest'); if(!el || !curSet()) return;
+    const b = bestsFor(runKey(mode))[0];
+    el.innerHTML = b ? 'Best time for ' + esc(rangeLabel()) + ': <b>' + fmtT(b.t) + '</b>. Can you beat it?' : 'No best time yet for ' + esc(rangeLabel()) + '. Finish a round to set one.';
+  }
+  const showAllSetupBest = () => Object.keys(CLOCK).forEach(showSetupBest);
+  ['spellSetup','saySetup','phSetup','quizSetup','matchSetup'].forEach(id => $(id).addEventListener('change', () => setTimeout(showAllSetupBest, 0)));
+  function timerStart(mode, full){
+    const key = runKey(mode), best = bestsFor(key)[0];
+    RUNS[mode] = { start: Date.now(), key, full: !!full, best: best ? best.t : null, done:false };
+    if(mode === 'match') $('mBestStat').innerHTML = best ? 'Best <b>' + fmtT(best.t) + '</b>' : '';
+    tickClocks();
+  }
+  function tickClocks(){
+    for(const m in RUNS){
+      const r = RUNS[m]; if(!r || r.done) continue;
+      const el = $(CLOCK[m]); if(!el) continue;
+      const t = fmtT(Date.now() - r.start);
+      el.textContent = (m !== 'match' && r.best && r.full) ? t + ' / best ' + fmtT(r.best) : t;
+    }
+  }
+  setInterval(tickClocks, 250);
+  function timerFinish(mode, misses, completed, boxId){
+    const r = RUNS[mode], box = $(boxId); if(!r || !box) return;
+    r.done = true;
+    const ms = Date.now() - r.start, total = ms + misses * PENALTY * 1000;
+    let entry = null, list = bestsFor(r.key), note = '', badge = '';
+    if(!completed) note = 'Finish every word to get on the top times.';
+    else if(!r.full) note = 'Retry rounds don\'t count toward top times.';
+    else {
+      data.best = data.best || {};
+      list = data.best[r.key] = (data.best[r.key] || []);
+      entry = { t: total, ms, miss: misses, d: Date.now() };
+      list.push(entry); list.sort((a,b) => a.t - b.t); list.splice(TOP_N); save();
+      const rank = list.indexOf(entry);
+      if(rank === 0) badge = list.length === 1 ? 'First best time!' : 'New best time!';
+      else if(rank > 0) badge = '#' + (rank+1) + ' on your top times';
+      else note = 'Not in the top ' + TOP_N + ' this time. The best is ' + fmtT(list[0].t) + '.';
+      showSetupBest(mode);
+    }
+    const detail = misses ? '<small> (' + fmtT(ms) + ' + ' + (misses*PENALTY) + 's for ' + misses + (misses===1?' mistake':' mistakes') + ')</small>' : '';
+    const fmtD = d => new Date(d).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    box.innerHTML = '<div class="tl">⏱ ' + fmtT(total) + detail + '</div>' +
+      (badge ? '<div class="badge">' + badge + '</div>' : '') +
+      (note ? '<div class="note">' + note + '</div>' : '') +
+      (list.length ? '<div class="note" style="margin-top:10px">Top times for ' + esc(rangeLabel()) + '. Each mistake adds ' + PENALTY + ' seconds.</div><ol class="top">' +
+        list.map((e,i) => `<li class="${e===entry?'me':''}"><span class="rk">${i+1}.</span><span>${fmtT(e.t)}</span><span class="ex">${e.miss ? e.miss + (e.miss===1?' mistake':' mistakes') : 'no mistakes'}, ${fmtD(e.d)}</span></li>`).join('') + '</ol>' : '');
+  }
+
   // ---------- spelling ----------
   let S = null;
   const tidy = s => s.trim().replace(/\s+/g,' ').replace(/[’‘]/g,"'");
@@ -966,7 +1054,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   const expected = it => capsMode() === 'first' ? it.q.charAt(0).toUpperCase() + it.q.slice(1) : it.q;
   const spelledRight = (typed, it) => capsMode() === 'none' ? norm(typed) === norm(it.q) : tidy(typed) === tidy(expected(it));
 
-  function startSpell(order, pool){
+  function startSpell(order, pool, full){
+    timerStart('spell', full);
     S = { order: shuffle(order), pool, i:0, score:0, missed:[], tries:0, done:false };
     $('spellSetup').hidden = true; $('spellDone').hidden = true; $('spellRun').hidden = false;
     $('noVoice').hidden = canSpeak;
@@ -1046,11 +1135,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('sdLine').textContent = S.score + ' of ' + done + ' spelled correctly' + (early && done < S.order.length ? ' (ended early)' : '') + '.';
     $('sMissedWrap').hidden = !S.missed.length; $('sRetryMissed').hidden = !S.missed.length;
     $('sMissedList').innerHTML = S.missed.map(m=>`<li><strong>${esc(m.want || m.it.q)}</strong><br><span class="a">You typed: ${esc(m.typed)}</span></li>`).join('');
+    timerFinish('spell', done - S.score, !early || done >= S.order.length, 'spellTimes');
     stepLabel($('spellStepUp'), 'Spell again');
   }
-  $('startSpell').onclick = () => { if(items.length){ const p = poolNow(); startSpell(p, p); } };
+  $('startSpell').onclick = () => { if(items.length){ const p = poolNow(); startSpell(p, p, true); } };
   $('sRetryMissed').onclick = () => startSpell(S.missed.map(m=>m.it), S.pool);
-  $('spellStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startSpell(p, p); };
+  $('spellStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startSpell(p, p, true); };
   $('sAgain').onclick = () => { $('spellDone').hidden = true; $('spellSetup').hidden = false; };
 
   // ---------- pronunciation ----------
@@ -1058,7 +1148,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   let P = null, rec = null;
   const plain = t => t.toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z0-9' ]+/g,' ').replace(/\s+/g,' ').trim();
   function stopListening(){ if(rec){ try{ rec.abort(); }catch(e){} rec = null; } const m = $('pMic'); if(m){ m.classList.remove('on'); m.querySelector('span').textContent = 'Say it'; } }
-  function startSay(order, pool){
+  function startSay(order, pool, full){
+    timerStart('say', full);
     P = { order: shuffle(order), pool, i:0, got:0, missed:[], tries:0, ok:false };
     $('saySetup').hidden = true; $('sayDone').hidden = true; $('sayRun').hidden = false;
     $('pMic').hidden = !SR; $('pHear').hidden = !canSpeak; $('pSlow').hidden = !canSpeak;
@@ -1155,13 +1246,14 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     } else { $('pdScore').textContent = done; $('pdLine').textContent = 'words practiced.'; }
     $('pMissedWrap').hidden = !P.missed.length; $('pRetryMissed').hidden = !P.missed.length;
     $('pMissedList').innerHTML = P.missed.map(m => `<li><strong>${esc(m.id.endsWith(':q') ? cased(m.q) : m.q)}</strong><br><span class="a">${showSyl(sylOf(m).text)}${m.snd ? '&nbsp;&nbsp;' + showSnd(m.snd) : ''}</span></li>`).join('');
+    timerFinish('say', SR ? P.missed.length : 0, !early || done >= P.order.length, 'sayTimes');
     stepLabel($('sayStepUp'), 'Practice again');
   }
   const sayTerms = () => buildTerms(poolNow(), $('sayCols').value);
-  $('startSay').onclick = () => { if(items.length){ const t = sayTerms(); startSay(t, t); } };
+  $('startSay').onclick = () => { if(items.length){ const t = sayTerms(); startSay(t, t, true); } };
   $('sayCols').onchange = () => { curSet().sayCols = $('sayCols').value; save(); };
   $('pRetryMissed').onclick = () => startSay(P.missed, P.pool);
-  $('sayStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const t = sayTerms(); startSay(t, t); };
+  $('sayStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const t = sayTerms(); startSay(t, t, true); };
   $('pAgain').onclick = () => { $('sayDone').hidden = true; $('saySetup').hidden = false; };
   $('showSnd').onchange = () => { if(P && !$('sayRun').hidden) $('pSndRow').hidden = !P.order[P.i].snd || !$('showSnd').checked; };
   $('noMic').hidden = !!SR;
@@ -1186,7 +1278,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   document.querySelectorAll('select.range').forEach(sel => sel.addEventListener('change', () => { if(!$('tab-phon').hidden) fillGroups(); }));
   $('phGroup').onchange = fillGroups;
   const showAlt = t => t === '' ? '(no letter)' : t;
-  function startPh(qs, pool){
+  function startPh(qs, pool, full){
+    timerStart('phon', full);
     H = { order: shuffle(qs), pool, i:0, score:0, missed:[], answered:false };
     $('phSetup').hidden = true; $('phDone').hidden = true; $('phRun').hidden = false;
     $('hHear').hidden = !canSpeak; $('hSlow').hidden = !canSpeak;
@@ -1233,11 +1326,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('hdLine').textContent = H.score + ' of ' + done + ' correct' + (early && done < H.order.length ? ' (ended early)' : '') + '.';
     $('hMissedWrap').hidden = !H.missed.length; $('hRetryMissed').hidden = !H.missed.length;
     $('hMissedList').innerHTML = H.missed.map(m => `<li><span class="phWord" style="font-size:24px">${markWord(cased(m.it.q), [m.p])}</span>${phListHtml(m.it.q, phParts(m.it), m.k).replace(/^<li>|<\/li>$/g,'')}</li>`).join('');
+    timerFinish('phon', H.missed.length, !early || done >= H.order.length, 'phTimes');
     stepLabel($('phStepUp'), 'Patterns again');
   }
-  $('startPh').onclick = () => { const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p); };
+  $('startPh').onclick = () => { const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p, true); };
   $('hRetryMissed').onclick = () => startPh(H.missed, H.pool);
-  $('phStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); fillGroups(); const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p); };
+  $('phStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); fillGroups(); const p = poolNow(), q = phQuestions(p); if(q.length) startPh(q, p, true); };
   $('hAgain').onclick = () => { $('phDone').hidden = true; $('phSetup').hidden = false; fillGroups(); };
   document.addEventListener('keydown', e => {
     if($('phRun').hidden || $('tab-phon').hidden || e.target.matches('input,textarea,select')) return;
@@ -1247,7 +1341,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
 
   // ---------- quiz ----------
   let Q = null;
-  function startQuiz(order, pool){
+  function startQuiz(order, pool, full){
+    timerStart('quiz', full);
     const n = +$('nChoices').value, dir = $('direction').value;
     Q = { order: shuffle(order), pool, i:0, score:0, missed:[], n, dir, answered:false };
     $('quizSetup').hidden = true; $('quizDone').hidden = true; $('quizRun').hidden = false;
@@ -1295,11 +1390,12 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     $('dLine').textContent = Q.score + ' of ' + done + ' correct' + (early && done < Q.order.length ? ' (ended early)' : '') + '.';
     $('missedWrap').hidden = !Q.missed.length; $('retryMissed').hidden = !Q.missed.length;
     $('missedList').innerHTML = Q.missed.map(m=>`<li><strong>${esc(cased(m.q))}</strong><br><span class="a">${esc(m.a)}</span></li>`).join('');
+    timerFinish('quiz', Q.missed.length, !early || done >= Q.order.length, 'quizTimes');
     stepLabel($('quizStepUp'), 'Quiz again');
   }
-  $('startQuiz').onclick = () => { if(items.length>=2){ const p = poolNow(); startQuiz(p, p); } };
+  $('startQuiz').onclick = () => { if(items.length>=2){ const p = poolNow(); startQuiz(p, p, true); } };
   $('retryMissed').onclick = () => startQuiz(Q.missed, Q.pool);
-  $('quizStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startQuiz(p, p); };
+  $('quizStepUp').onclick = () => { const n = nextN(); if(!n) return; setRange(n); const p = poolNow(); startQuiz(p, p, true); };
   $('retryAll').onclick = () => { $('quizDone').hidden = true; $('quizSetup').hidden = false; };
   document.addEventListener('keydown', e => {
     if($('quizRun').hidden || $('tab-quiz').hidden || e.target.matches('input,textarea,select')) return;
@@ -1316,7 +1412,7 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     if(rounds.length>1 && rounds[rounds.length-1].length===1){ rounds[rounds.length-2].push(rounds.pop()[0]); }
     M = { rounds, r:0, matched:0, total:order.length, miss:0, start:Date.now(), selQ:null, selA:null };
     $('matchSetup').hidden = true; $('matchDone').hidden = true; $('matchRun').hidden = false;
-    clearInterval(timer); timer = setInterval(tick, 500); tick();
+    clearInterval(timer); timerStart('match', true);
     showRound();
   }
   function fmt(ms){ const s = Math.floor(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
@@ -1362,7 +1458,8 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   function finishMatch(early){
     clearInterval(timer);
     $('matchRun').hidden = true; $('matchDone').hidden = false;
-    $('mdTime').textContent = fmt(Date.now()-M.start);
+    $('mdTime').textContent = (M.total ? Math.round(M.matched/M.total*100) : 0) + '%';
+    timerFinish('match', M.miss, M.matched >= M.total, 'matchTimes');
     stepLabel($('matchStepUp'), 'Match again');
     $('mdLine').textContent = 'Matched ' + M.matched + ' of ' + M.total + ' with ' + M.miss + (M.miss===1?' miss':' misses') + (early && M.matched<M.total ? ' (ended early).' : '.');
   }
