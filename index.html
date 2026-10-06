@@ -176,7 +176,6 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
       <div class="row" style="margin-top:12px">
         <button class="btn" id="addBulk">Add to list</button>
         <button class="btn quiet" id="states">Load states and capitals</button>
-        <button class="btn quiet" id="spellSample">Load spelling words</button>
       </div>
       <p class="hint" id="bulkMsg" aria-live="polite" style="margin-bottom:0"></p>
     </div>
@@ -639,12 +638,15 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
     if(!data.sets.length) data.sets = [{ id:uid(), name:'States and capitals', items: stateItems() }];
     if(!data.seededSpelling){
       data.seededSpelling = true; justSeeded = true;
-      if(!data.sets.some(s => s.name === 'Spelling words')) data.sets.push({ id:uid(), name:'Spelling words', items: pairItems(SPELLING) });
+      if(!data.sets.some(s => s.name === 'Spelling words')) data.sets.push({ id:uid(), name:'Spelling words', items: [] });
       data.cur = data.sets.find(s => s.name === 'Spelling words').id;
       data.range = 5;
     }
     // This week's words: replaces the Spelling words list once per new week
-    const WEEK = { id: '2026-10-05', name: 'Spelling words', words: [["analyze", "To study something carefully.", "an-a-lyze", "AN-uh-lize"], ["accurate", "Correct and free from mistakes.", "ac-cu-rate", "AK-yur-it"], ["conclude", "To decide after thinking about the facts.", "con-clude", "kun-KLOOD"], ["contrast", "To show how things are different.", "con-trast", "kun-TRAST"], ["evidence", "Facts or information that support an idea.", "ev-i-dence", "EV-ih-dunss"], ["essential", "Very important.", "es-sen-tial", "ih-SEN-shul"], ["familiar", "Known or recognized.", "fa-mil-iar", "fuh-MIL-yer"], ["generate", "To create something.", "gen-er-ate", "JEN-uh-rayt"], ["identify", "To name or recognize something.", "i-den-ti-fy", "eye-DEN-tih-fy"], ["influence", "The power to affect someone or something.", "in-flu-ence", "IN-floo-unss"], ["perspective", "The way someone sees or understands something.", "per-spec-tive", "per-SPEK-tiv"], ["relevant", "Connected to the topic or situation.", "rel-e-vant", "REL-uh-vunt"], ["significant", "Important or meaningful.", "sig-nif-i-cant", "sig-NIF-ih-kunt"], ["sufficient", "Enough for what is needed.", "suf-fi-cient", "suh-FISH-unt"], ["maintain", "To keep something in good condition or continue it.", "main-tain", "mayn-TAYN"]] };
+    const WEEK = { id: '2026-10-05-2', name: 'Spelling words', words: [["analyze", "To study something carefully.", "an-a-lyze", "AN-uh-lize"], ["accurate", "Correct and free from mistakes.", "ac-cu-rate", "AK-yur-it"], ["conclude", "To decide after thinking about the facts.", "con-clude", "kun-KLOOD"], ["contrast", "To show how things are different.", "con-trast", "kun-TRAST"], ["evidence", "Facts or information that support an idea.", "ev-i-dence", "EV-ih-dunss"], ["essential", "Very important.", "es-sen-tial", "ih-SEN-shul"], ["familiar", "Known or recognized.", "fa-mil-iar", "fuh-MIL-yer"], ["generate", "To create something.", "gen-er-ate", "JEN-uh-rayt"], ["identify", "To name or recognize something.", "i-den-ti-fy", "eye-DEN-tih-fy"], ["influence", "The power to affect someone or something.", "in-flu-ence", "IN-floo-unss"], ["perspective", "The way someone sees or understands something.", "per-spec-tive", "per-SPEK-tiv"], ["relevant", "Connected to the topic or situation.", "rel-e-vant", "REL-uh-vunt"], ["significant", "Important or meaningful.", "sig-nif-i-cant", "sig-NIF-ih-kunt"], ["sufficient", "Enough for what is needed.", "suf-fi-cient", "suh-FISH-unt"], ["maintain", "To keep something in good condition or continue it.", "main-tain", "mayn-TAYN"]] };
+    // remove the old sample words (necessary, separate, believe...) from every list
+    const OLD = new Set(SPELLING.map(([q,a]) => q + '|' + a));
+    data.sets.forEach(st => { st.items = st.items.filter(it => !OLD.has(it.q + '|' + it.a)); });
     if(data.week !== WEEK.id){
       data.week = WEEK.id;
       let set = data.sets.find(st => st.name === WEEK.name);
@@ -764,7 +766,6 @@ ul.phList .tip{color:var(--muted);display:block;font-size:15px}
   };
   $('oneA').addEventListener('keydown', e => { if(e.key==='Enter') $('addOne').click(); });
   $('states').onclick = () => addItems(stateItems(), 'states');
-  $('spellSample').onclick = () => addItems(pairItems(SPELLING), 'words');
   $('clearBtn').onclick = () => { if(items.length && confirm('Remove all ' + items.length + ' items from "' + curSet().name + '"?')){ items=[]; save(); renderList(); } };
   $('exportBtn').onclick = () => {
     const clean = t => (t||'').replace(/\t/g,' ');
