@@ -1542,7 +1542,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   }
 
   // rough "how would this be said" reader for checking speech on made-up words
-  const G2P_TEAMS = [['eigh','AY'],['igh','EYE'],['ai','AY'],['ay','AY'],['ee','EE'],['ea','EE'],['oa','OH'],['oe','OH'],['oi','OY'],['oy','OY'],['ou','OW'],['oo','OO'],['ew','OO'],['ue','OO'],['ui','OO'],['au','AW'],['aw','AW'],['ie','EE'],['ei','AY']];
+  const G2P_TEAMS = [['eigh','AY'],['ia','EYE'],['igh','EYE'],['ai','AY'],['ay','AY'],['ee','EE'],['ea','EE'],['oa','OH'],['oe','OH'],['oi','OY'],['oy','OY'],['ou','OW'],['oo','OO'],['ew','OO'],['ue','OO'],['ui','OO'],['au','AW'],['aw','AW'],['ie','EE'],['ei','AY']];
   const LONGV = { a:'AY', e:'EE', i:'EYE', o:'OH', u:'OO', y:'EYE' };
   function g2p(raw){
     let w = raw.toLowerCase().replace(/[^a-z]/g,'');
@@ -1606,13 +1606,42 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     return d[a.length][b.length];
   }
   const isVowelTok = t => /^(short |AY|EE|EYE|OH|OO|OY|OW|AW|AR|OR|ER)/.test(t);
-  // true when what was heard sounds like the made-up word
+  // sounds that speech recognition often swaps for each other
+  const NEAR = ['b|p','p|f','d|t','g|k','v|f','s|z','J|CH','CH|SH','m|n','TH|f','TH|t','w|r','l|r','short o|AW','short e|short i','short u|short o'].map(x => x.split('|'));
+  const near = (x, y) => NEAR.some(([p,q]) => (p===x && q===y) || (p===y && q===x));
+  function subCost(x, y){
+    if(x === y) return 0;
+    const vx = isVowelTok(x), vy = isVowelTok(y);
+    if(vx !== vy) return 1.5;
+    if(near(x, y)) return vx ? 0.75 : 0.5;
+    return 1;
+  }
+  function wlev(a, b){
+    const d = Array.from({length:a.length+1}, (_,i) => [i].concat(Array(b.length).fill(0)));
+    for(let j=1;j<=b.length;j++) d[0][j] = j;
+    for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++)
+      d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + subCost(a[i-1], b[j-1]));
+    return d[a.length][b.length];
+  }
+  // common words speech recognition writes that don't follow the rules
+  const IRREG = { one:['w','short u','n'], two:['t','OO'], to:['t','OO'], do:['d','OO'], eye:['EYE'], i:['EYE'], you:['y','OO'], are:['AR'], our:['OW','r'], oh:['OH'], says:['s','short e','s'], said:['s','short e','d'], was:['w','short u','s'], of:['short u','v'], the:['TH','short u'], a:['short u'] };
+  const firstVowel = toks => { const v = toks.find(isVowelTok); return v === 'AW' ? 'short o' : v; };
+  // true when what was heard sounds like the made-up word.
+  // The main vowel has to be right (that's the phonics being practiced); small consonant slips are allowed,
+  // because speech recognition turns made-up words into the nearest real words.
   function soundsLike(heard, word){
-    const a = g2p(word), b = g2p(heard);
-    if(!a.length || !b.length) return false;
-    const va = a.filter(isVowelTok).join(), vb = b.filter(isVowelTok).join();
-    if(va !== vb) return false;                       // vowel sounds must match exactly
-    return lev(a, b) <= (a.length >= 5 ? 1 : 0);
+    const a = g2p(word);
+    if(!a.length) return false;
+    const limit = a.length <= 3 ? 1 : a.length <= 5 ? 1.5 : 2;
+    const words = heard.toLowerCase().replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
+    for(let i = 0; i < words.length; i++){
+      for(let j = i + 1; j <= Math.min(words.length, i + 3); j++){
+        const b = words.slice(i, j).flatMap(x => IRREG[x] || g2p(x));
+        if(!b.length || firstVowel(b) !== firstVowel(a)) continue;
+        if(wlev(a, b) <= limit) return true;
+      }
+    }
+    return false;
   }
 
   let F = null, fRec = null;
