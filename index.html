@@ -169,6 +169,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     <button role="tab" data-tab="spell" aria-selected="false">Spelling</button>
     <button role="tab" data-tab="say" aria-selected="false">Pronounce</button>
     <button role="tab" data-tab="phon" aria-selected="false">Patterns</button>
+    <button role="tab" data-tab="fake" aria-selected="false">Made-up words</button>
     <button role="tab" data-tab="quiz" aria-selected="false">Multiple choice</button>
     <button role="tab" data-tab="match" aria-selected="false">Matching</button>
   </nav>
@@ -387,6 +388,71 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
         <button class="btn ghost" id="hAgain">Start again</button>
       </div>
       <div id="hMissedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Missed</h3><ul class="phList" id="hMissedList"></ul></div>
+    </div>
+  </section>
+
+  <!-- MADE-UP WORDS -->
+  <section id="tab-fake" hidden>
+    <div class="panel" id="fakeSetup">
+      <h2 style="font-size:24px;margin-bottom:12px">Made-up words</h2>
+      <p class="hint">Words nobody has seen before, built to follow phonics rules exactly. He can't have memorized them, so the only way to get them right is to use the rules. A new set is made every time.</p>
+      <div class="opts">
+        <label>Practice
+          <select id="fakeMode"><option value="read">reading (say it, then check)</option><option value="spell">spelling (hear it, type it)</option></select>
+        </label>
+        <label>Pattern
+          <select id="fakeFocus"></select>
+        </label>
+        <label>Words
+          <select id="fakeCount"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
+        </label>
+      </div>
+      <button class="btn" id="startFake">Make words</button>
+      <p class="timeBest" id="fakeSetupBest"></p>
+    </div>
+
+    <div class="panel" id="fakeRun" hidden>
+      <div class="progress"><span id="fBar"></span></div>
+      <div class="meta"><span id="fPos"></span><span class="clock" id="fClock">0:00</span><span id="fScore"></span></div>
+      <div class="phWord" id="fWord"></div>
+      <p class="hint" id="fAsk" style="margin:0 0 12px"></p>
+      <div class="speak" style="margin:0 0 14px">
+        <button class="sayBtn" id="fHear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg><span>Hear it</span></button>
+        <button class="sayBtn small" id="fSlow">Slowly</button>
+        <button class="sayBtn small" id="fSpellOut" hidden>Spell it out</button>
+      </div>
+      <div class="speak" id="fRecRow" style="margin:0 0 14px">
+        <button class="sayBtn mic" id="fRec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><span>Record me</span></button>
+        <button class="sayBtn small" id="fPlayMe" hidden>Play me</button>
+        <button class="sayBtn small" id="fCompare" hidden>Compare</button>
+      </div>
+      <p class="hint" id="fRecMsg" hidden style="margin:-6px 0 12px"></p>
+      <div id="fSpellBox" hidden>
+        <input type="text" class="spell" id="fInput" name="fk-word" placeholder="Type the word" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" writingsuggestions="false" aria-autocomplete="none" data-lpignore="true" data-1p-ignore="true" data-form-type="other" aria-label="Your spelling">
+        <div id="fPadHost"></div>
+      </div>
+      <div class="row" id="fReadBtns" hidden>
+        <button class="btn" id="fGotIt">I said it right</button>
+        <button class="btn quiet" id="fNotYet">Not quite</button>
+      </div>
+      <div class="feedback" id="fFeedback" aria-live="polite"></div>
+      <div class="phBox" id="fPh" hidden></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="fCheck">Check</button>
+        <button class="btn" id="fNext" hidden>Next word</button>
+        <button class="btn quiet" id="fQuit">End</button>
+      </div>
+    </div>
+
+    <div class="panel" id="fakeDone" hidden>
+      <div class="big" id="fdScore"></div>
+      <p id="fdLine" style="margin:8px 0 16px"></p>
+      <div class="timeBox" id="fakeTimes"></div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="fAgain">Make new words</button>
+        <button class="btn ghost" id="fBack">Change settings</button>
+      </div>
+      <div id="fMissedWrap"><h3 style="font-size:19px;margin:12px 0 8px">Practice these</h3><ul class="phList" id="fMissedList"></ul></div>
     </div>
   </section>
 
@@ -837,10 +903,10 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
   function showTab(name){
     currentTab = name;
-    if(!['spell','say','phon'].includes(name) && window.speechSynthesis) speechSynthesis.cancel();
+    if(!['spell','say','phon','fake'].includes(name) && window.speechSynthesis) speechSynthesis.cancel();
     fillRanges();
     document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===name));
-    ['edit','spell','say','phon','quiz','match'].forEach(t => $('tab-'+t).hidden = t!==name);
+    ['edit','spell','say','phon','fake','quiz','match'].forEach(t => $('tab-'+t).hidden = t!==name);
     if(name === 'phon') fillGroups();
     if(name === 'spell' || name === 'say') syncCaps();
     showAllSetupBest();
@@ -856,8 +922,8 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     if(window.speechSynthesis) speechSynthesis.cancel();
     clearInterval(timer);
     stopListening(); for(const k in RUNS) delete RUNS[k];
-    ['spellRun','spellDone','sayRun','sayDone','phRun','phDone','quizRun','quizDone','matchRun','matchDone'].forEach(id => $(id).hidden = true);
-    ['spellSetup','saySetup','phSetup','quizSetup','matchSetup'].forEach(id => $(id).hidden = false);
+    ['spellRun','spellDone','sayRun','sayDone','phRun','phDone','fakeRun','fakeDone','quizRun','quizDone','matchRun','matchDone'].forEach(id => $(id).hidden = true);
+    ['spellSetup','saySetup','phSetup','fakeSetup','quizSetup','matchSetup'].forEach(id => $(id).hidden = false);
   }
 
   // ---------- speech ----------
@@ -915,9 +981,15 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
       if(k === 'shift'){ b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }
     });
   }
+  // which spelling box the letter pad is typing into right now
+  function padCtx(){
+    if(!$('spellRun').hidden && !$('tab-spell').hidden && S && !S.done) return { inp: $('sInput'), cls:'spell' };
+    if(!$('fakeRun').hidden && !$('tab-fake').hidden && F && F.mode === 'spell' && !F.done) return { inp: $('fInput'), cls:'spell' };
+    return null;
+  }
   function padKey(k){
-    if(!S || S.done || $('spellRun').hidden) return;
-    const inp = $('sInput');
+    const ctx = padCtx(); if(!ctx) return;
+    const inp = ctx.inp;
     if(k==='shift'){ setShift(!padShift); return; }
     if(k==='back') inp.value = inp.value.slice(0,-1);
     else if(k==='clear') inp.value = '';
@@ -931,19 +1003,24 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   $('pad').addEventListener('click', e => { if(e.detail === 0){ const b = e.target.closest('button'); if(b) padKey(b.dataset.k); } }); // keyboard activation
   function applyPad(){
     padOn = $('usePad').checked;
-    const inp = $('sInput');
-    inp.readOnly = padOn;
-    inp.setAttribute('inputmode', padOn ? 'none' : 'text');
-    inp.placeholder = padOn ? 'Tap the letters' : 'Type the word';
+    ['sInput','fInput'].forEach(id => {
+      const inp = $(id);
+      inp.readOnly = padOn;
+      inp.setAttribute('inputmode', padOn ? 'none' : 'text');
+      inp.placeholder = padOn ? 'Tap the letters' : 'Type the word';
+    });
     $('pad').hidden = !padOn;
   }
   function focusInput(){ if(!padOn) $('sInput').focus(); }
   // a hardware keyboard still works while the pad is on
   document.addEventListener('keydown', e => {
-    if(!padOn || $('spellRun').hidden || $('tab-spell').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-    if(e.target.matches('input:not(#sInput),textarea,select')) return;
+    if(!padOn || e.ctrlKey || e.metaKey || e.altKey) return;
+    const inSpell = !$('spellRun').hidden && !$('tab-spell').hidden;
+    const inFake = !$('fakeRun').hidden && !$('tab-fake').hidden && F && F.mode === 'spell';
+    if(!inSpell && !inFake) return;
+    if(e.target.matches('input:not(#sInput):not(#fInput),textarea,select')) return;
     if(e.key==='Enter' && e.target.matches('button')) return; // let the focused button handle it
-    if(e.key==='Enter'){ e.preventDefault(); if(S.done) $('sNext').click(); else checkS(); }
+    if(e.key==='Enter'){ e.preventDefault(); if(inSpell){ if(S.done) $('sNext').click(); else checkS(); } else { if(F.done) $('fNext').click(); else checkF(); } }
     else if(e.key==='Backspace'){ e.preventDefault(); padKey('back'); }
     else if(/^[a-zA-Z' -]$/.test(e.key)){ e.preventDefault(); padKey(e.key); }
   });
@@ -952,8 +1029,9 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   // ---------- timers and top times ----------
   const PENALTY = 5, TOP_N = 5;
   const RUNS = {};
-  const CLOCK = { spell:'sClock', say:'pClock', phon:'hClock', quiz:'qClock', match:'mTime' };
+  const CLOCK = { spell:'sClock', say:'pClock', phon:'hClock', fake:'fClock', quiz:'qClock', match:'mTime' };
   function runKey(mode){
+    if(mode === 'fake') return 'fake|' + $('fakeMode').value + '|' + $('fakeFocus').value + '|' + $('fakeCount').value;
     let k = curSet().id + '|' + mode + '|' + rangeVal();
     if(mode==='quiz') k += '|' + $('nChoices').value + $('direction').value;
     if(mode==='match') k += '|' + $('roundSize').value;
@@ -963,14 +1041,17 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   }
   const bestsFor = key => ((data.best || {})[key] || []);
   function fmtT(ms){ const s = Math.round(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
-  function rangeLabel(){ const n = rangeVal(); return n >= items.length ? 'all ' + items.length : 'the first ' + n; }
+  function rangeLabel(mode){
+    if(mode === 'fake') return $('fakeCount').value + ' made-up words (' + FAKE_FOCUS[$('fakeFocus').value].name.toLowerCase() + ', ' + ($('fakeMode').value === 'read' ? 'reading' : 'spelling') + ')';
+    const n = rangeVal(); return n >= items.length ? 'all ' + items.length : 'the first ' + n;
+  }
   function showSetupBest(mode){
     const el = $(mode + 'SetupBest'); if(!el || !curSet()) return;
     const b = bestsFor(runKey(mode))[0];
-    el.innerHTML = b ? 'Best time for ' + esc(rangeLabel()) + ': <b>' + fmtT(b.t) + '</b>. Can you beat it?' : 'No best time yet for ' + esc(rangeLabel()) + '. Finish a round to set one.';
+    el.innerHTML = b ? 'Best time for ' + esc(rangeLabel(mode)) + ': <b>' + fmtT(b.t) + '</b>. Can you beat it?' : 'No best time yet for ' + esc(rangeLabel(mode)) + '. Finish a round to set one.';
   }
   const showAllSetupBest = () => Object.keys(CLOCK).forEach(showSetupBest);
-  ['spellSetup','saySetup','phSetup','quizSetup','matchSetup'].forEach(id => $(id).addEventListener('change', () => setTimeout(showAllSetupBest, 0)));
+  ['spellSetup','saySetup','phSetup','fakeSetup','quizSetup','matchSetup'].forEach(id => $(id).addEventListener('change', () => setTimeout(showAllSetupBest, 0)));
   function timerStart(mode, full){
     const key = runKey(mode), best = bestsFor(key)[0];
     RUNS[mode] = { start: Date.now(), key, full: !!full, best: best ? best.t : null, done:false };
@@ -1009,7 +1090,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     box.innerHTML = '<div class="tl">⏱ ' + fmtT(total) + detail + '</div>' +
       (badge ? '<div class="badge">' + badge + '</div>' : '') +
       (note ? '<div class="note">' + note + '</div>' : '') +
-      (list.length ? '<div class="note" style="margin-top:10px">Top times for ' + esc(rangeLabel()) + '. Each mistake adds ' + PENALTY + ' seconds.</div><ol class="top">' +
+      (list.length ? '<div class="note" style="margin-top:10px">Top times for ' + esc(rangeLabel(mode)) + '. Each mistake adds ' + PENALTY + ' seconds.</div><ol class="top">' +
         list.map((e,i) => `<li class="${e===entry?'me':''}"><span class="rk">${i+1}.</span><span>${fmtT(e.t)}</span><span class="ex">${e.miss ? e.miss + (e.miss===1?' mistake':' mistakes') : 'no mistakes'}, ${fmtD(e.d)}</span></li>`).join('') + '</ol>' : '');
   }
 
@@ -1056,6 +1137,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
 
   function startSpell(order, pool, full){
     timerStart('spell', full);
+    $('sInput').after($('pad'));
     S = { order: shuffle(order), pool, i:0, score:0, missed:[], tries:0, done:false };
     $('spellSetup').hidden = true; $('spellDone').hidden = true; $('spellRun').hidden = false;
     $('noVoice').hidden = canSpeak;
@@ -1338,6 +1420,296 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     if(/^[1-4]$/.test(e.key) && +e.key <= (H.opts||[]).length) pickH(+e.key-1);
     else if(e.key==='Enter' && H.answered && document.activeElement !== $('hNext')) $('hNext').click();
   });
+
+  // ---------- made-up words that follow phonics rules exactly ----------
+  // A word is a list of chunks: { t: letters, alts: other spellings the rules allow, snd: sounds in this chunk, ph: pattern note, syl: starts a new syllable }
+  const pickOne = a => a[Math.floor(Math.random() * a.length)];
+  const VOWELS = ['a','e','i','o','u'];
+  const ONSET1 = ['b','d','f','g','h','j','l','m','n','p','r','s','t','v','w','y','z','k'];
+  const ONSET2 = ['bl','br','cl','cr','dr','fl','fr','gl','gr','pl','pr','sl','sn','sp','st','tr','sh','ch','th'];
+  function onset(v, allowBlend = true){
+    let o;
+    do { o = (allowBlend && Math.random() < 0.45) ? pickOne(ONSET2) : pickOne(ONSET1); }
+    while(o === 'g' && /^[ei]/.test(v));                       // g before e or i can say /j/, so skip it
+    if(o === 'k') o = /^[aou]/.test(v) ? 'c' : 'k';             // /k/: c before a, o, u; k before e, i
+    return { t:o, snd:[o.replace(/^c(?!h)/,'k')] };
+  }
+  const PAT = (group, label, sound, tip) => ({ group, label, sound, tip });
+  const SHORT_KEY = { a:'/a/ as in apple', e:'/e/ as in egg', i:'/i/ as in itch', o:'/o/ as in octopus', u:'/u/ as in up' };
+  const shortV = (v, tip) => ({ t:v, snd:['short '+v], ph:PAT('Vowel sounds','Short '+v, SHORT_KEY[v], tip === false ? null : (tip || 'A vowel closed in by a consonant is usually short.')) });
+  function closedCoda(end){
+    const r = Math.random();
+    if(end && r < 0.14){ const c = pickOne(['f','l','s']); return { t:c+c, snd:[c], ph:PAT('Double letters','FLOSS rule','/'+c+'/','After a short vowel at the end of a one-syllable word, double f, l and s.') }; }
+    if(end && r < 0.26) return { t:'ck', snd:['k'], ph:PAT('Sneaky sounds','ck after a short vowel','/k/','Right after a short vowel, /k/ is spelled ck.') };
+    if(end && r < 0.34) return { t:'tch', snd:['ch'], ph:PAT('Sneaky sounds','tch after a short vowel','/ch/','Right after a short vowel, /ch/ is spelled tch.') };
+    if(end && r < 0.42) return { t:'dge', snd:['j'], ph:PAT('Sneaky sounds','dge after a short vowel','/j/','Right after a short vowel, /j/ is spelled dge.') };
+    if(end && r < 0.56){ const c = pickOne(['nd','nt','mp','st','sk','lt','ft','lp','ng','nk','sh','th']); return { t:c, snd:[c] }; }
+    const c = pickOne(['b','d','g','m','n','p','t','x']); return { t:c, snd:[c === 'x' ? 'ks' : c] };
+  }
+  function closedSyl(end = true, allowBlend = true){
+    const v = pickOne(VOWELS);
+    return [onset(v, allowBlend), shortV(v), closedCoda(end)];
+  }
+  const LONG = { a:'ai', i:null, o:'oa', u:null };
+  function silentESyl(){
+    const v = pickOne(Object.keys(LONG)), on = onset(v), c = pickOne(['b','d','k','l','m','n','p','t']);
+    const alts = []; if(LONG[v] && c !== 'k') alts.push(LONG[v] + c);
+    if(v === 'i' && c === 't') alts.push('ight');
+    return [on, { t: v + c + 'e', alts, snd:['long '+v, c], ph:PAT('Silent letters','Silent e: '+v+'_e',{a:'/ay/',i:'/eye/',o:'/oh/',u:'/yoo/'}[v],'The silent e at the end makes the '+v+' say its name.') }];
+  }
+  const TEAM_MID = [
+    ['ai','long a',['a_e'],'ai in the middle of a word says /ay/.'], ['ee','long e',['ea'],'ee and ea both say /ee/, so either works.'],
+    ['ea','long e',['ee'],'ea and ee both say /ee/, so either works.'], ['oa','long o',['o_e'],'oa in the middle of a word says /oh/.'],
+    ['oi','oy',[],'Use oi in the middle of a word and oy at the end.'], ['ou','ow',[],'ou in the middle of a word says /ow/.'], ['oo','oo',[],'oo says /oo/ like in moon.']
+  ];
+  const TEAM_END = [['ay','long a','Use ay at the end of a word, ai in the middle.'],['ee','long e','ee at the end says /ee/.'],['oy','oy','Use oy at the end of a word, oi in the middle.'],['ew','oo','ew and ue at the end both say /oo/.']];
+  function teamSyl(){
+    if(Math.random() < 0.35){
+      const [t, snd, tip] = pickOne(TEAM_END);
+      return [onset(t[0]), { t, alts: t === 'ew' ? ['ue'] : [], snd:[snd], ph:PAT('Vowel teams', t + ' at the end', snd, tip) }];
+    }
+    if(Math.random() < 0.15) return [onset('i'), { t:'ight', alts:['ite'], snd:['long i','t'], ph:PAT('Vowel teams','igh','long i','igh says /eye/. The gh is silent.') }];
+    const [t, snd, altsPat, tip] = pickOne(TEAM_MID), c = pickOne(['b','d','l','m','n','p','t']);
+    return [onset(t[0]), { t: t + c, alts: altsPat.map(a => a.includes('_') ? a[0] + c + 'e' : a + c), snd:[snd, c], ph:PAT('Vowel teams', t, snd, tip) }];
+  }
+  function rSyl(){
+    const [t, snd, others] = pickOne([['ar','ar',[]],['or','or',[]],['er','er',['ir','ur']],['ir','er',['er','ur']],['ur','er',['er','ir']]]);
+    const c = Math.random() < 0.6 ? pickOne(['b','d','m','n','p','t','k']) : '';
+    return [onset(t[0]), { t: t + c, alts: others.map(x => x + c), snd: c ? [snd, c] : [snd], ph:PAT('r-controlled vowels', t, snd, others.length ? 'er, ir and ur all say /er/, so any of them works.' : 'The r changes the vowel sound.') }];
+  }
+  function leWord(){
+    const v = pickOne(VOWELS), c = pickOne(['b','d','g','p','t','z','f']);
+    return [onset(v), shortV(v, 'The double consonant before -le keeps this vowel short.'),
+      { t:c, snd:[c] }, { t: c + 'le', snd:['ul'], ph:PAT('Endings and suffixes','Consonant + le','/'+c+'ul/','A final -'+c+'le says /'+c+'ul/. The double '+c+' keeps the first vowel short.'), syl:true }];
+  }
+  function twoSyl(){
+    const v1 = pickOne(VOWELS), v2 = pickOne(VOWELS);
+    const c1 = pickOne(['b','d','m','n','p','t','s']), o2 = onset(v2, false);
+    if(o2.t === c1) o2.t = o2.t === 't' ? 'p' : 't', o2.snd = [o2.t];
+    const c2 = pickOne(['b','d','g','m','n','p','t','x','st','nd','nt','mp']);
+    return [onset(v1), shortV(v1, 'Both syllables are closed, so both vowels are short.'), { t:c1, snd:[c1] }, Object.assign(o2, { syl:true }), shortV(v2, false), { t:c2, snd:[c2 === 'x' ? 'ks' : c2] }];
+  }
+  const FAKE_FOCUS = {
+    mixed:   { name:'Mixed patterns', make: () => pickOne([closedSyl, silentESyl, teamSyl, rSyl, leWord, twoSyl])() },
+    short:   { name:'Short vowels', make: () => closedSyl() },
+    silente: { name:'Silent e', make: silentESyl },
+    teams:   { name:'Vowel teams', make: teamSyl },
+    r:       { name:'r-controlled vowels', make: rSyl },
+    rules:   { name:'ck, tch, dge and FLOSS', make: () => { let w; do { w = closedSyl(); } while(!w[2].ph); return w; } },
+    le:      { name:'Consonant + le', make: leWord },
+    two:     { name:'Two syllables', make: twoSyl }
+  };
+  const BAD = /f[uv]c?k|shi?t|d[i1]c?k|c[o0]c?k|cum|t[i1]t|fag|n[i1]g|sex|ass|but{1,2}|p[i1]ss|damn|hell|crap|slut|wh[o0]r|rape|kill|fart|poo|pee|puk|nud|bich|bitch|homo|gay|jew|nazi|weed|drug|twat|pube|pen[i1]s|boob|dum|stup|hate|die|dead|gun|wtf|omg/;
+  const REAL = new Set(('cat dog bat hat sat mat rat pat fat cap map tap lap nap gap rap sap bed red led fed wed pen ten hen den men pet net get jet let met set wet vet big dig fig pig wig bit fit hit kit lit pit sit wit bin fin pin tin win hot pot dot got lot not rot cot job mob rob sob top hop mop pop bug hug jug mug rug tug bun fun run sun nut hut cut bus cup pup tub rub sub hum gum sum bad dad had mad sad pad lad box fox six mix fix wax tax ' +
+    'back pack sack tack rack lack neck deck kick lick pickOne sick tick lock rock sock dock duck luck tuck buck ' +
+    'cake bake lake make rake take wake fake game name same tame came gate late mate rate date cape tape bike hike like kite bite site time lime dime mine fine line nine pine wine hide ride side wide bone cone tone hope rope note vote home dome mole pole hole role cube tube mule rule cute mute ' +
+    'rain pain main gain tail mail nail sail pail wait bait day pay say way may ray bay hay lay play stay tree free see bee feet meet seed need deep keep beat heat meat neat seat team bean mean lean read lead boat coat goat road toad soap loan coin join oil boil soil foil out loud shout food mood moon soon noon boot root pool tool cool new few dew blue clue toy boy joy soy night light might right sight fight tight ' +
+    'car bar far jar star park dark mark farm barn born corn horn fork for torn her fur burn turn hurt bird girl dirt first fern gird term herd ' +
+    'bubble puddle little bottle middle paddle apple cattle battle kettle saddle riddle giggle wiggle juggle topple shuffle ruffle waffle muffle sniffle toddle muddle huddle fiddle nibble dabble pebble ripple nipple hobble ' +
+    'bell cell fell sell tell well yell hill fill bill mill pill will doll dull full pull ball call fall hall mall tall wall mess less miss kiss boss toss fuss off cliff stuff puff snuff sniff staff ' +
+    'match patch catch fetch sketch itch pitch witch ditch notch hutch badge edge ledge hedge ridge bridge fudge judge nudge ' +
+    'hand land band sand send bend mend tend lend pond fond tent bent dent rent sent went mint hint lint camp lamp damp ramp jump bump pump lump dump best nest pest rest test vest west fast last past mast list mist fist cost lost must dust rust gust desk disk task mask husk belt felt melt lift gift soft help ring sing king wing long song bang hang sank bank tank pink sink wink ' +
+    'ship shop shot shut fish dish wish rush cash bath math with then them this that than chip chop chin chat ' +
+    'flag flat flap flip flop clap clip clam clan crab crib crop drip drop drum frog from glad grab grin plan plug plus prop slam slap slip slot sled snap snip spot spin spit step stop trap trip trim ' +
+    'drain maim spine flight peck germ plight slight fright bright light tight spite slide glide pride bride prize shine spike strike stroke smoke broke spoke slope globe grade trade blade shade flame frame plane crane shake snake brake flake grape drape wipe ripe pipe type tribe kite ' +
+    'harp sharp card hard yard lard cord lord short sport snort curb nurb perk jerk term herb verb ' +
+    'sledge kir nozzle dazzle fizzle sizzle puzzle muzzle guzzle drizzle frizzle grizzle raffle baffle ' +
+    'basket napkin rabbit kitten mitten picnic magnet button sunset tiptop').split(' '));
+  function makeFake(focus){
+    for(let tries = 0; tries < 300; tries++){
+      const parts = FAKE_FOCUS[focus].make();
+      const word = parts.map(p => p.t).join('');
+      if(word.length < 3 || BAD.test(word) || REAL.has(word) || /(.)\1\1/.test(word)) continue;
+      let at = 0; const ph = [];
+      parts.forEach(p => { if(p.ph) ph.push({ s:at, l:p.t.length, group:p.ph.group, label:p.ph.label, sound:p.ph.sound, alts:[], tip:p.ph.tip }); at += p.t.length; });
+      let spellings = [''];
+      parts.forEach(p => { const opts = [p.t].concat(p.alts || []); spellings = spellings.flatMap(s => opts.map(o => s + o)).slice(0, 40); });
+      spellings = [...new Set(spellings)];
+      if(spellings.slice(1).some(s => REAL.has(s) || BAD.test(s))) continue;
+      const si = parts.findIndex(p => p.syl);
+      const syl = si > 0 ? parts.slice(0,si).map(p=>p.t).join('') + '-' + parts.slice(si).map(p=>p.t).join('') : word;
+      const sounds = parts.flatMap(p => p.snd || [p.t]);
+      return { id:'fake:' + word, q:word, a:FAKE_FOCUS[focus].name, syl, sounds, ph, spellings };
+    }
+    return null;
+  }
+  function makeFakeSet(focus, n){
+    const out = [], seen = new Set();
+    for(let i = 0; out.length < n && i < n * 20; i++){ const w = makeFake(focus); if(w && !seen.has(w.q)){ seen.add(w.q); out.push(w); } }
+    return out;
+  }
+
+  let F = null;
+  $('fakeFocus').innerHTML = Object.entries(FAKE_FOCUS).map(([k,v]) => `<option value="${k}">${esc(v.name)}</option>`).join('');
+  const fakeNorm = t => t.trim().toLowerCase().replace(/\s+/g,'');
+  function startFake(){
+    const mode = $('fakeMode').value, words = makeFakeSet($('fakeFocus').value, +$('fakeCount').value);
+    if(!words.length) return;
+    timerStart('fake', true);
+    F = { mode, order: words, i:0, score:0, missed:[], tries:0, done:false };
+    $('fakeSetup').hidden = true; $('fakeDone').hidden = true; $('fakeRun').hidden = false;
+    $('fSpellBox').hidden = mode !== 'spell'; $('fReadBtns').hidden = true;
+    if(mode === 'spell') $('fPadHost').appendChild($('pad'));
+    $('fHear').hidden = !canSpeak; $('fSlow').hidden = !canSpeak;
+    showF();
+  }
+  function sayFake(slow){
+    const w = F.order[F.i];
+    if(!slow) return say([w.q], 0.85);
+    const syls = w.syl.split('-');
+    say(syls.length > 1 ? syls.concat([w.q]) : [w.q, w.q], 0.6);
+  }
+  const fakeSounds = w => w.sounds.map(x => esc(x)).join(' <span style="color:var(--muted)">·</span> ');
+  function fakeExplain(w){
+    return '<div class="phWord">' + markWord(w.q, w.ph) + '</div>' +
+      (w.syl.includes('-') ? '<p class="pron"><span class="lbl">Syllables</span> <span class="syl">' + showSyl(w.syl) + '</span></p>' : '') +
+      '<p class="pron"><span class="lbl">Sounds</span> ' + fakeSounds(w) + '</p>' +
+      '<ul class="phList">' + phListHtml(w.q, w.ph) + '</ul>' +
+      (w.spellings.length > 1 ? '<p class="hint" style="margin:8px 0 0">Other spellings that follow the rules: ' + w.spellings.slice(1).map(esc).join(', ') + '</p>' : '');
+  }
+  function showF(){
+    const w = F.order[F.i];
+    F.tries = 0; F.done = false;
+    resetRec();
+    $('fSpellOut').hidden = !(canSpeak && F.mode === 'read');
+    $('fPos').textContent = 'Word ' + (F.i+1) + ' of ' + F.order.length;
+    $('fScore').textContent = F.score + ' correct';
+    $('fBar').style.width = (F.i / F.order.length * 100) + '%';
+    $('fFeedback').textContent = ''; $('fFeedback').className = 'feedback'; $('fPh').hidden = true;
+    $('fNext').hidden = true; $('fNext').textContent = F.i === F.order.length-1 ? 'See results' : 'Next word';
+    if(F.mode === 'read'){
+      $('fWord').innerHTML = esc(w.q);
+      $('fAsk').textContent = w.syl.includes('-') ? 'Read it out loud. Hint: ' + showSylPlain(w.syl) : 'Read it out loud, then check.';
+      $('fHear').querySelector('span').textContent = 'Hear it'; $('fHear').hidden = !canSpeak; $('fSlow').hidden = !canSpeak;
+      $('fCheck').hidden = false; $('fCheck').textContent = 'Check me'; $('fReadBtns').hidden = true;
+    } else {
+      $('fWord').innerHTML = '';
+      $('fAsk').textContent = 'Listen, then spell it using the rules.';
+      $('fHear').querySelector('span').textContent = 'Hear it'; $('fSlow').hidden = !canSpeak;
+      const inp = $('fInput'); inp.value = ''; inp.className = 'spell'; inp.disabled = false; inp.name = 'fk-' + uid();
+      $('fCheck').hidden = false; $('fCheck').textContent = 'Check spelling';
+      setShift(false); sayFake(false); if(!padOn) inp.focus();
+    }
+  }
+  const showSylPlain = t => t.replace(/-/g,' · ');
+  function checkF(){
+    if(!F || F.done) return;
+    const w = F.order[F.i];
+    if(F.mode === 'read'){
+      // reveal: play it and show how the rules work, then he marks himself
+      sayFake(false);
+      $('fPh').innerHTML = fakeExplain(w); $('fPh').hidden = false;
+      $('fCheck').hidden = true; $('fReadBtns').hidden = false;
+      $('fFeedback').textContent = 'Did you say it like that?'; $('fFeedback').className = 'feedback';
+      $('fHear').hidden = !canSpeak; $('fHear').querySelector('span').textContent = 'Hear it again'; $('fSlow').hidden = !canSpeak;
+      return;
+    }
+    const inp = $('fInput'), typed = fakeNorm(inp.value);
+    if(!typed){ if(!padOn) inp.focus(); return; }
+    F.tries++;
+    if(w.spellings.includes(typed)){
+      F.done = true; F.score++; inp.className = 'spell ok'; inp.disabled = true;
+      $('fFeedback').textContent = typed === w.q ? (F.tries === 1 ? 'Correct.' : 'Correct on the second try.') : 'Correct! That spelling follows the rules too. I made it as "' + w.q + '."';
+      $('fFeedback').className = 'feedback ok';
+      endF();
+    } else if(F.tries < 2){
+      inp.className = 'spell bad';
+      $('fFeedback').textContent = 'Not quite. Listen again and think about the rules.'; $('fFeedback').className = 'feedback bad';
+      sayFake(true); if(padOn) inp.value = ''; else inp.select();
+    } else {
+      F.done = true; F.missed.push({ w, typed: inp.value.trim() }); inp.className = 'spell bad'; inp.disabled = true;
+      $('fFeedback').innerHTML = 'The rules spell it:<div class="reveal">' + esc(w.q) + '</div>'; $('fFeedback').className = 'feedback bad';
+      endF();
+    }
+    $('fScore').textContent = F.score + ' correct';
+  }
+  function endF(){
+    $('fPh').innerHTML = fakeExplain(F.order[F.i]); $('fPh').hidden = false;
+    $('fSpellOut').hidden = !canSpeak;
+    $('fCheck').hidden = true; $('fReadBtns').hidden = true; $('fNext').hidden = false; $('fNext').focus();
+  }
+  function markRead(ok){
+    if(!F || F.done) return;
+    F.done = true;
+    if(ok) F.score++; else F.missed.push({ w: F.order[F.i] });
+    $('fScore').textContent = F.score + ' correct';
+    $('fFeedback').textContent = ok ? 'Nice reading.' : 'Listen once more and try it again out loud.';
+    $('fFeedback').className = 'feedback ' + (ok ? 'ok' : 'bad');
+    endF();
+  }
+  $('fGotIt').onclick = () => markRead(true);
+  $('fNotYet').onclick = () => markRead(false);
+  $('fCheck').onclick = checkF;
+  $('fInput').addEventListener('keydown', e => { if(!padOn && e.key === 'Enter'){ e.preventDefault(); if(F.done) $('fNext').click(); else checkF(); } });
+  $('fHear').onclick = () => { sayFake(false); if(F.mode === 'spell' && !padOn) $('fInput').focus(); };
+  $('fSlow').onclick = () => { sayFake(true); if(F.mode === 'spell' && !padOn) $('fInput').focus(); };
+  $('fNext').onclick = () => { if(F.i < F.order.length-1){ F.i++; showF(); } else finishF(); };
+  $('fQuit').onclick = () => finishF(true);
+  function finishF(early){
+    if(canSpeak) speechSynthesis.cancel();
+    resetRec();
+    const done = early ? F.i + (F.done?1:0) : F.order.length;
+    $('fakeRun').hidden = true; $('fakeDone').hidden = false;
+    $('fdScore').textContent = (done ? Math.round(F.score/done*100) : 0) + '%';
+    $('fdLine').textContent = F.score + ' of ' + done + (F.mode === 'read' ? ' read correctly' : ' spelled correctly') + (early && done < F.order.length ? ' (ended early)' : '') + '.';
+    timerFinish('fake', done - F.score, !early || done >= F.order.length, 'fakeTimes');
+    $('fMissedWrap').hidden = !F.missed.length;
+    $('fMissedList').innerHTML = F.missed.map(m => `<li><span class="phWord" style="font-size:24px">${markWord(m.w.q, m.w.ph)}</span><br><span class="a">${fakeSounds(m.w)}${m.typed ? '. You typed: ' + esc(m.typed) : ''}</span></li>`).join('');
+  }
+  // record him saying the word, then play it back next to the computer's version
+  let recMedia = null, recChunks = [], recUrl = null, recTimer = null;
+  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  function stopRec(discard){
+    clearTimeout(recTimer);
+    if(recMedia && recMedia.state !== 'inactive'){ recMedia._discard = !!discard; recMedia.stop(); }
+  }
+  function resetRec(){
+    stopRec(true);
+    if(recUrl){ URL.revokeObjectURL(recUrl); recUrl = null; }
+    $('fPlayMe').hidden = true; $('fCompare').hidden = true; $('fRecMsg').hidden = true;
+    const btn = $('fRec'); btn.hidden = !canRecord; btn.classList.remove('on'); btn.querySelector('span').textContent = 'Record me';
+  }
+  async function startRec(){
+    if(recMedia && recMedia.state === 'recording'){ stopRec(); return; }
+    let stream;
+    try{ stream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+    catch(e){
+      $('fRecMsg').textContent = location.protocol === 'file:' ? 'Chrome blocks the microphone for pages opened as a file. Use the web address instead.' : 'The microphone is blocked. Allow microphone access for this page, then try again.';
+      $('fRecMsg').hidden = false; return;
+    }
+    if(canSpeak) speechSynthesis.cancel();
+    recChunks = [];
+    const rec = new MediaRecorder(stream); recMedia = rec;
+    rec.ondataavailable = e => { if(e.data && e.data.size) recChunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const btn = $('fRec'); btn.classList.remove('on'); btn.querySelector('span').textContent = 'Record again';
+      if(rec._discard || !recChunks.length) return;
+      if(recUrl) URL.revokeObjectURL(recUrl);
+      recUrl = URL.createObjectURL(new Blob(recChunks, { type: rec.mimeType || 'audio/webm' }));
+      $('fPlayMe').hidden = false; $('fCompare').hidden = !canSpeak;
+      $('fRecMsg').textContent = 'Tap Compare to hear the word first, then you.'; $('fRecMsg').hidden = false;
+    };
+    rec.start();
+    const btn = $('fRec'); btn.classList.add('on'); btn.querySelector('span').textContent = 'Recording… tap to stop';
+    $('fRecMsg').textContent = 'Say the word now.'; $('fRecMsg').hidden = false;
+    recTimer = setTimeout(() => stopRec(), 4000);
+  }
+  const playMe = () => new Promise(res => { if(!recUrl) return res(); const a = new Audio(recUrl); a.onended = res; a.onerror = res; a.play().catch(res); });
+  const sayAndWait = (text, rate) => new Promise(res => {
+    if(!canSpeak) return res();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.lang = 'en-US'; if(voice) u.voice = voice;
+    u.onend = res; u.onerror = res; speechSynthesis.speak(u);
+    setTimeout(res, 4000);
+  });
+  $('fRec').onclick = startRec;
+  $('fPlayMe').onclick = () => playMe();
+  $('fCompare').onclick = async () => { await sayAndWait(F.order[F.i].q, 0.85); await new Promise(r => setTimeout(r, 300)); await playMe(); };
+  $('fSpellOut').onclick = () => { const w = F.order[F.i].q; say([w].concat([...w].map(c => c.toUpperCase())), 0.8); };
+  $('startFake').onclick = startFake;
+  $('fAgain').onclick = startFake;
+  $('fBack').onclick = () => { $('fakeDone').hidden = true; $('fakeSetup').hidden = false; };
 
   // ---------- quiz ----------
   let Q = null;
