@@ -395,7 +395,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   <section id="tab-fake" hidden>
     <div class="panel" id="fakeSetup">
       <h2 style="font-size:24px;margin-bottom:12px">Made-up words</h2>
-      <p class="hint">Brand-new words built to follow phonics rules exactly, so the only way to get them right is to use the rules. Each word is shown with its syllables and how it sounds. Listen at normal speed or one syllable at a time, then say it yourself and the page checks what it heard.</p>
+      <p class="hint">Brand-new words built to follow phonics rules exactly, so the only way to get them right is to use the rules. Each word is shown with its syllables and how it sounds. Listen at normal speed or one syllable at a time, then tap Say it: it records you, plays the word and then your recording, and you decide if they match.</p>
       <div class="opts">
         <label>Practice
           <select id="fakeMode"><option value="read">saying the words</option><option value="spell">spelling the words</option></select>
@@ -433,6 +433,11 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
         <div id="fPadHost"></div>
       </div>
       <div class="feedback" id="fFeedback" aria-live="polite"></div>
+      <div class="row" id="fJudge" hidden style="margin:0 0 12px">
+        <button class="btn" id="fRight">I said it right</button>
+        <button class="btn quiet" id="fAgainRec">Try again</button>
+        <button class="btn quiet" id="fReplay">Play again</button>
+      </div>
       <div class="row">
         <button class="btn" id="fCheck" hidden>Check spelling</button>
         <button class="btn" id="fNext">Next word</button>
@@ -727,7 +732,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
       data.seededSpelling = true; justSeeded = true;
       if(!data.sets.some(s => s.name === 'Spelling words')) data.sets.push({ id:uid(), name:'Spelling words', items: [] });
       data.cur = data.sets.find(s => s.name === 'Spelling words').id;
-      data.range = 5;
+      data.group = 0;
     }
     // This week's words: replaces the Spelling words list once per new week
     const WEEK = { id: '2026-10-05-2', name: 'Spelling words', words: [["analyze", "To study something carefully.", "an-a-lyze", "AN-uh-lize"], ["accurate", "Correct and free from mistakes.", "ac-cu-rate", "AK-yur-it"], ["conclude", "To decide after thinking about the facts.", "con-clude", "kun-KLOOD"], ["contrast", "To show how things are different.", "con-trast", "kun-TRAST"], ["evidence", "Facts or information that support an idea.", "ev-i-dence", "EV-ih-dunss"], ["essential", "Very important.", "es-sen-tial", "ih-SEN-shul"], ["familiar", "Known or recognized.", "fa-mil-iar", "fuh-MIL-yer"], ["generate", "To create something.", "gen-er-ate", "JEN-uh-rayt"], ["identify", "To name or recognize something.", "i-den-ti-fy", "eye-DEN-tih-fy"], ["influence", "The power to affect someone or something.", "in-flu-ence", "IN-floo-unss"], ["perspective", "The way someone sees or understands something.", "per-spec-tive", "per-SPEK-tiv"], ["relevant", "Connected to the topic or situation.", "rel-e-vant", "REL-uh-vunt"], ["significant", "Important or meaningful.", "sig-nif-i-cant", "sig-NIF-ih-kunt"], ["sufficient", "Enough for what is needed.", "suf-fi-cient", "suh-FISH-unt"], ["maintain", "To keep something in good condition or continue it.", "main-tain", "mayn-TAYN"]] };
@@ -740,7 +745,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
       if(!set){ set = { id: uid(), name: WEEK.name, items: [] }; data.sets.push(set); }
       set.items = WEEK.words.map(([q,a,syl,snd]) => ({ id: uid(), q, a, syl, snd }));
       if(!set.caps || set.caps === 'none') set.caps = 'first';
-      data.cur = set.id; data.range = 5; justSeeded = true;
+      data.cur = set.id; data.group = 0; justSeeded = true;
     }
     if(!data.capReqOff){ data.capReqOff = true; data.sets.forEach(st => { st.capReq = false; }); } // saying "uppercase" no longer required by default
     if(!data.capSayOff){ data.capSayOff = true; data.sets.forEach(st => { st.capSay = false; }); } // voice no longer says "uppercase" by default
@@ -759,7 +764,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   }
   function switchTo(id){
     stopAll();
-    data.cur = id; items = curSet().items; data.range = 5; save();
+    data.cur = id; items = curSet().items; data.group = 0; save();
     renderSets(); renderList(); showTab(currentTab);
   }
   $('setSel').onchange = () => switchTo($('setSel').value);
@@ -806,7 +811,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     $('listTitle').textContent = curSet().name;
     const ol = $('list');
     if(!items.length){ ol.innerHTML = '<li class="empty" style="display:block;background:none;box-shadow:none">This list is empty. Paste some pairs above or load one of the ready-made lists.</li>'; return; }
-    ol.innerHTML = items.map((it,i) => `<li data-id="${it.id}"><span class="n">${i+1}</span><div class="q">${esc(it.q)}</div><div class="a">${esc(it.a)}</div>${(it.syl||it.snd) ? `<div class="p">${it.syl?'<b>'+showSyl(it.syl)+'</b>':''}${it.syl&&it.snd?'&nbsp;&nbsp;':''}${it.snd?showSnd(it.snd):''}</div>` : ''}
+    ol.innerHTML = sortedItems().map((it,i) => `<li data-id="${it.id}"><span class="n">${i+1}</span><div class="q">${esc(it.q)}</div><div class="a">${esc(it.a)}</div>${(it.syl||it.snd) ? `<div class="p">${it.syl?'<b>'+showSyl(it.syl)+'</b>':''}${it.syl&&it.snd?'&nbsp;&nbsp;':''}${it.snd?showSnd(it.snd):''}</div>` : ''}
       <div class="acts"><button class="icon" data-act="edit">Edit</button><button class="icon" data-act="del">Delete</button></div></li>`).join('');
   }
   $('list').addEventListener('click', e => {
@@ -875,25 +880,35 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   };
 
   // ---------- range (first 5, first 10, ...) ----------
+  // lists are practiced 5 at a time, in alphabetical order
+  const GROUP = 5;
+  const sortKey = it => { const m = it.q.trim().match(CAP_RE); return (m ? m[1] : it.q).trim().toLowerCase(); };
+  const sortedItems = () => items.slice().sort((x,y) => sortKey(x).localeCompare(sortKey(y)));
+  const groupCount = () => Math.ceil(items.length / GROUP);
+  const shortName = it => { const m = it.q.trim().match(CAP_RE); const t = (m ? m[1] : it.q).trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+  function groupLabel(g){
+    if(g === 'all') return 'All ' + items.length;
+    const so = sortedItems(), a = g*GROUP, b = Math.min(a+GROUP, so.length);
+    if(!so.length) return 'None yet';
+    return (a+1) + '–' + b + ': ' + shortName(so[a]) + (b-1 > a ? ' to ' + shortName(so[b-1]) : '');
+  }
+  function curGroup(){ const g = data.group; if(g === 'all') return groupCount() > 1 ? 'all' : 0; const n = +g || 0; return n < groupCount() ? n : 0; }
   function fillRanges(){
-    const len = items.length, opts = [];
-    for(let n=5; n<len; n+=5) opts.push(n);
-    opts.push(len);
-    const want = Math.min(Math.max(data.range, 2), len);
-    const cur = opts.find(n => n >= want) || len;
+    const G = Math.max(groupCount(), 1), cur = curGroup();
+    const opts = [...Array(G).keys()].concat(G > 1 ? ['all'] : []);
     document.querySelectorAll('select.range').forEach(sel => {
-      sel.innerHTML = opts.map(n => `<option value="${n}">${n===len ? 'All ' + len : 'First ' + n}</option>`).join('');
-      sel.value = cur;
+      sel.innerHTML = opts.map(g => `<option value="${g}">${esc(groupLabel(g))}</option>`).join('');
+      sel.value = String(cur);
     });
   }
-  const rangeVal = () => +document.querySelector('select.range').value || items.length;
-  function setRange(n){ data.range = n; save(); fillRanges(); if(typeof showAllSetupBest === 'function') showAllSetupBest(); }
-  document.querySelectorAll('select.range').forEach(sel => sel.onchange = () => setRange(+sel.value));
-  const poolNow = () => items.slice(0, rangeVal());
-  const nextN = () => { const n = rangeVal(); return n < items.length ? Math.min(n+5, items.length) : 0; };
+  const rangeVal = () => String(curGroup());
+  function setRange(g){ data.group = g; save(); fillRanges(); if(typeof showAllSetupBest === 'function') showAllSetupBest(); }
+  document.querySelectorAll('select.range').forEach(sel => sel.onchange = () => setRange(sel.value === 'all' ? 'all' : +sel.value));
+  const poolNow = () => { const so = sortedItems(), g = curGroup(); return g === 'all' ? so : so.slice(g*GROUP, g*GROUP + GROUP); };
+  const nextN = () => { const g = curGroup(); return (g !== 'all' && g + 1 < groupCount()) ? g + 1 : 0; };
   function stepLabel(btn, verb){
     const n = nextN(); btn.hidden = !n;
-    if(n) btn.textContent = verb + (n === items.length ? ' with all ' + n : ' with the first ' + n);
+    if(n) btn.textContent = verb + ' with ' + (n*GROUP + 1) + '–' + Math.min((n+1)*GROUP, items.length);
   }
 
   // ---------- tabs ----------
@@ -1042,7 +1057,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   function fmtT(ms){ const s = Math.round(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
   function rangeLabel(mode){
     if(mode === 'fake') return $('fakeCount').value + ' made-up words (' + FAKE_FOCUS[$('fakeFocus').value].name.toLowerCase() + ', ' + ($('fakeMode').value === 'read' ? 'reading' : 'spelling') + ')';
-    const n = rangeVal(); return n >= items.length ? 'all ' + items.length : 'the first ' + n;
+    const g = curGroup(); return g === 'all' ? 'all ' + items.length : 'words ' + (g*GROUP + 1) + '–' + Math.min(g*GROUP + GROUP, items.length);
   }
   function showSetupBest(mode){
     const el = $(mode + 'SetupBest'); if(!el || !curSet()) return;
@@ -1644,11 +1659,36 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     return false;
   }
 
-  let F = null, fRec = null;
+  let F = null;
   $('fakeFocus').innerHTML = Object.entries(FAKE_FOCUS).map(([k,v]) => `<option value="${k}">${esc(v.name)}</option>`).join('');
-  $('fNoMic').hidden = !!SR;
+  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  $('fNoMic').hidden = canRecord;
   const fakeNorm = t => t.trim().toLowerCase().replace(/\s+/g,'');
-  function stopFakeListening(){ if(fRec){ try{ fRec.abort(); }catch(e){} fRec = null; } const m = $('fMic'); m.classList.remove('on'); m.querySelector('span').textContent = 'Say it'; }
+  // record him, then play the word followed by his recording so he can compare
+  let recMedia = null, recUrl = null, recTimer = null;
+  function stopRecording(discard){ clearTimeout(recTimer); if(recMedia && recMedia.state !== 'inactive'){ recMedia._discard = !!discard; recMedia.stop(); } }
+  function stopFakeListening(){
+    stopRecording(true);
+    if(recUrl){ URL.revokeObjectURL(recUrl); recUrl = null; }
+    const m = $('fMic'); m.classList.remove('on'); m.querySelector('span').textContent = 'Say it';
+    $('fJudge').hidden = true;
+  }
+  const playRecording = () => new Promise(res => { if(!recUrl) return res(); const a = new Audio(recUrl); a.onended = res; a.onerror = res; a.play().catch(res); });
+  const speakAndWait = (text, rate) => new Promise(res => {
+    if(!canSpeak) return res();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.lang = 'en-US'; if(voice) u.voice = voice;
+    u.onend = res; u.onerror = res; speechSynthesis.speak(u); setTimeout(res, 4000);
+  });
+  async function compareNow(){
+    $('fJudge').hidden = true;
+    $('fFeedback').textContent = 'Listen: the word first, then you.'; $('fFeedback').className = 'feedback';
+    await speakAndWait(F.order[F.i].q, 0.85);
+    await new Promise(r => setTimeout(r, 350));
+    await playRecording();
+    if(F.ok){ $('fFeedback').textContent = 'Marked as said correctly.'; $('fFeedback').className = 'feedback ok'; }
+    else { $('fFeedback').textContent = 'Did yours sound the same?'; $('fJudge').hidden = false; }
+  }
   function startFake(words, full){
     const mode = $('fakeMode').value;
     words = words || makeFakeSet($('fakeFocus').value, +$('fakeCount').value);
@@ -1659,7 +1699,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     $('fSpellBox').hidden = mode !== 'spell'; $('fCheck').hidden = mode !== 'spell'; $('fAsk').hidden = mode !== 'spell';
     if(mode === 'spell') $('fPadHost').appendChild($('pad'));
     $('fHear').hidden = !canSpeak; $('fSlow').hidden = !canSpeak;
-    $('fMic').hidden = !SR || mode === 'spell';
+    $('fMic').hidden = !canRecord || mode === 'spell';
     showF();
   }
   function fillFakeInfo(w){
@@ -1680,7 +1720,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     $('fSelfOk').hidden = true;
     $('fFeedback').textContent = ''; $('fFeedback').className = 'feedback';
     $('fPos').textContent = 'Word ' + (F.i+1) + ' of ' + F.order.length;
-    $('fScore').textContent = (F.mode === 'spell' ? F.score + ' correct' : (SR ? F.score + ' said correctly' : ''));
+    $('fScore').textContent = (F.mode === 'spell' ? F.score + ' correct' : (canRecord ? F.score + ' said correctly' : ''));
     $('fBar').style.width = (F.i / F.order.length * 100) + '%';
     $('fNext').textContent = F.i === F.order.length-1 ? 'See results' : 'Next word';
     if(F.mode === 'spell'){
@@ -1696,40 +1736,40 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   $('fSpellOut').onclick = () => { const w = F.order[F.i].q; say([w].concat([...w].map(c => c.toUpperCase())), 0.8); };
   function markSaid(text){
     if(!F.ok){ F.ok = true; F.score++; }
-    $('fFeedback').textContent = text; $('fFeedback').className = 'feedback ok'; $('fSelfOk').hidden = true;
+    $('fFeedback').textContent = text; $('fFeedback').className = 'feedback ok'; $('fSelfOk').hidden = true; $('fJudge').hidden = true;
     $('fScore').textContent = F.score + ' said correctly';
   }
   $('fSelfOk').onclick = () => markSaid('Marked as said correctly.');
-  $('fMic').onclick = () => {
-    if(!SR || !F) return;
-    if(fRec){ stopFakeListening(); return; }
+  $('fMic').onclick = async () => {
+    if(!canRecord || !F) return;
+    if(recMedia && recMedia.state === 'recording'){ stopRecording(); return; }
+    let stream;
+    try{ stream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+    catch(e){
+      $('fFeedback').textContent = location.protocol === 'file:' ? 'Chrome blocks the microphone for pages opened as a file. Use the web address instead.' : 'The microphone is blocked. Allow microphone access for this page in Chrome, then try again.';
+      $('fFeedback').className = 'feedback bad'; return;
+    }
     if(canSpeak) speechSynthesis.cancel();
-    const w = F.order[F.i];
-    fRec = new SR(); fRec.lang = 'en-US'; fRec.interimResults = false; fRec.maxAlternatives = 5;
-    const btn = $('fMic'); btn.classList.add('on'); btn.querySelector('span').textContent = 'Listening…';
+    if(recUrl){ URL.revokeObjectURL(recUrl); recUrl = null; }
+    const chunks = [], rec = new MediaRecorder(stream), btn = $('fMic');
+    recMedia = rec;
+    rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      btn.classList.remove('on'); btn.querySelector('span').textContent = 'Say it';
+      if(rec._discard || !chunks.length) return;
+      recUrl = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
+      compareNow();
+    };
+    rec.start();
+    btn.classList.add('on'); btn.querySelector('span').textContent = 'Recording… tap to stop';
+    $('fJudge').hidden = true;
     $('fFeedback').textContent = 'Say the word now.'; $('fFeedback').className = 'feedback';
-    let heard = false;
-    fRec.onresult = e => {
-      heard = true;
-      const alts = [...e.results[0]].map(a => a.transcript.trim());
-      F.tries++;
-      if(alts.some(a => soundsLike(a, w.q))) markSaid('Nice. That sounded like "' + w.q + '".');
-      else {
-        $('fFeedback').textContent = 'I heard "' + (alts[0] || '…') + '". Try "Slowly, by syllable", then say it again.';
-        $('fFeedback').className = 'feedback bad';
-        $('fSelfOk').hidden = F.ok;   // speech checking guesses at made-up words, so allow a self-check
-      }
-    };
-    fRec.onerror = e => {
-      heard = true;
-      const msg = { 'not-allowed': location.protocol === 'file:' ? 'Chrome blocks the microphone for pages opened as a file. Use the web address instead.' : 'The microphone is blocked. Allow microphone access for this page in Chrome, then try again.',
-        'service-not-allowed':'The microphone is blocked. Allow microphone access for this page in Chrome, then try again.',
-        'no-speech':'I didn\'t hear anything. Tap Say it and speak right away.', 'audio-capture':'No microphone was found.', 'network':'Speech checking needs an internet connection.' }[e.error];
-      if(e.error !== 'aborted'){ $('fFeedback').textContent = msg || 'Something went wrong listening. Try again.'; $('fFeedback').className = 'feedback bad'; }
-    };
-    fRec.onend = () => { if(!heard){ $('fFeedback').textContent = 'I didn\'t catch that. Tap Say it and try again.'; $('fFeedback').className = 'feedback bad'; } fRec = null; btn.classList.remove('on'); btn.querySelector('span').textContent = 'Say it'; };
-    try{ fRec.start(); }catch(err){ stopFakeListening(); }
+    recTimer = setTimeout(() => stopRecording(), 3500);
   };
+  $('fRight').onclick = () => { $('fJudge').hidden = true; markSaid('Nice. Marked as said correctly.'); };
+  $('fAgainRec').onclick = () => { $('fJudge').hidden = true; $('fMic').click(); };
+  $('fReplay').onclick = () => compareNow();
   function checkF(){
     if(!F || F.mode !== 'spell' || F.done) return;
     const w = F.order[F.i], inp = $('fInput'), typed = fakeNorm(inp.value);
@@ -1755,7 +1795,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
   $('fCheck').onclick = checkF;
   $('fInput').addEventListener('keydown', e => { if(!padOn && e.key === 'Enter'){ e.preventDefault(); if(F.done) $('fNext').click(); else checkF(); } });
   $('fNext').onclick = () => {
-    if(F.mode === 'read' && SR && !F.ok) F.missed.push(F.order[F.i]);
+    if(F.mode === 'read' && canRecord && !F.ok) F.missed.push(F.order[F.i]);
     if(F.i < F.order.length-1){ F.i++; showF(); } else finishF();
   };
   $('fQuit').onclick = () => finishF(true);
@@ -1763,7 +1803,7 @@ ol.top .rk{color:var(--muted)} ol.top .ex{color:var(--muted)}
     stopFakeListening(); if(canSpeak) speechSynthesis.cancel();
     const done = early ? F.i + ((F.ok || F.done) ? 1 : 0) : F.order.length;
     $('fakeRun').hidden = true; $('fakeDone').hidden = false;
-    const scored = F.mode === 'spell' || SR;
+    const scored = F.mode === 'spell' || canRecord;
     if(scored){
       $('fdScore').textContent = (done ? Math.round(F.score/done*100) : 0) + '%';
       $('fdLine').textContent = F.score + ' of ' + done + (F.mode === 'spell' ? ' spelled correctly' : ' said correctly') + (early && done < F.order.length ? ' (ended early)' : '') + '.';
