@@ -10,18 +10,21 @@ function startQuiz(order, pool, full){
 }
 function showQ(){
   const it = Q.order[Q.i];
-  const promptText = Q.dir==='qa' ? it.q : it.a;
-  const right = Q.dir==='qa' ? it.a : it.q;
+  // definitions are shown in rotating wordings, since tests often reword them
+  const sentence = Q.dir === 'sent' ? sentenceOf(it) : null;
+  const promptText = Q.dir==='qa' ? it.q : sentence ? sentence.replace('___', '_____') : defOf(it);
+  const right = Q.dir==='qa' ? defOf(it) : it.q;
   const field = Q.dir==='qa' ? 'a' : 'q';
   const seen = new Set([right.toLowerCase()]);
   const wrong = [];
   for(const o of [...shuffle(Q.pool), ...shuffle(items)]){
-    const v = o[field]; if(seen.has(v.toLowerCase())) continue;
+    const v = field === 'a' ? defOf(o) : o.q;
+    if(o === it || seen.has(v.toLowerCase())) continue;
     seen.add(v.toLowerCase()); wrong.push(v); if(wrong.length >= Q.n-1) break;
   }
   Q.opts = shuffle([right, ...wrong]); Q.right = right; Q.answered=false;
   $('qPrompt').textContent = Q.dir==='qa' ? cased(promptText) : promptText;
-  $('qChoices').innerHTML = Q.opts.map((o,k)=>`<button class="choice" data-k="${k}"><span class="k">${k+1}</span><span>${esc(Q.dir==='aq' ? cased(o) : o)}</span></button>`).join('');
+  $('qChoices').innerHTML = Q.opts.map((o,k)=>`<button class="choice" data-k="${k}"><span class="k">${k+1}</span><span>${esc(Q.dir!=='qa' ? cased(o) : o)}</span></button>`).join('');
   $('qPos').textContent = 'Question ' + (Q.i+1) + ' of ' + Q.order.length;
   $('qScore').textContent = Q.score + ' correct';
   $('qBar').style.width = (Q.i / Q.order.length * 100) + '%';
@@ -35,8 +38,10 @@ function pick(k){
   const btns = [...$('qChoices').children];
   const chosen = Q.opts[k];
   btns.forEach((b,j)=>{ b.disabled=true; if(Q.opts[j]===Q.right) b.classList.add('right'); });
-  if(chosen === Q.right){ Q.score++; $('qFeedback').textContent='Correct.'; $('qFeedback').className='feedback ok'; }
-  else { btns[k].classList.add('wrong'); Q.missed.push(Q.order[Q.i]); $('qFeedback').textContent='Not quite. The answer is: ' + (Q.dir==='aq' ? cased(Q.right) : Q.right); $('qFeedback').className='feedback bad'; }
+  const hook = hookOf(Q.order[Q.i]);
+  const hookHtml = hook ? '<div class="hint" style="margin:6px 0 0;font-weight:400">💡 ' + esc(hook) + '</div>' : '';
+  if(chosen === Q.right){ Q.score++; $('qFeedback').innerHTML = 'Correct.' + hookHtml; $('qFeedback').className='feedback ok'; }
+  else { btns[k].classList.add('wrong'); Q.missed.push(Q.order[Q.i]); $('qFeedback').innerHTML = esc('Not quite. The answer is: ' + (Q.dir!=='qa' ? cased(Q.right) : Q.right)) + hookHtml; $('qFeedback').className='feedback bad'; }
   $('qScore').textContent = Q.score + ' correct';
   $('qNext').disabled = false; $('qNext').focus();
 }
