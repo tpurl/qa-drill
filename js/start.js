@@ -1,6 +1,6 @@
 // Q&A Drill: start the app (loads last).
 // Add-on tabs listed in EXTRA load first; the single-file build inlines them, so they are skipped here.
-const EXTRA = ['js/vocab.js', 'js/fractions.js'];
+const EXTRA = ['js/vocab.js', 'js/lists.js', 'js/fractions.js', 'js/flashcards.js', 'js/fluency.js'];
 function startApp(){ load(); buildPad(); $('usePad').checked = data.pad === undefined ? touchy : !!data.pad; applyPad(); renderSets(); renderList(); showTab(justSeeded ? 'spell' : 'edit'); }
 (function loadExtra(i){
   if(i >= EXTRA.length) return startApp();

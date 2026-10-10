@@ -172,7 +172,7 @@ $('importFile').onchange = e => {
 // lists are practiced 5 at a time, in alphabetical order
 const GROUP = 5;
 const sortKey = it => { const m = it.q.trim().match(CAP_RE); return (m ? m[1] : it.q).trim().toLowerCase(); };
-const sortedItems = () => items.slice().sort((x,y) => sortKey(x).localeCompare(sortKey(y)));
+const sortedItems = () => (curSet() && curSet().order === 'sheet') ? items.slice() : items.slice().sort((x,y) => sortKey(x).localeCompare(sortKey(y)));
 const groupCount = () => Math.ceil(items.length / GROUP);
 const shortName = it => { const m = it.q.trim().match(CAP_RE); const t = (m ? m[1] : it.q).trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
 function groupLabel(g){
