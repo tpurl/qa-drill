@@ -5,9 +5,12 @@
     equiv:    'Equivalent fractions',
     simplify: 'Simplify step by step',
     word:     'Word problems',
+    compare:  'Compare (<, >, =)',
+    order:    'Put in order',
     mixed:    'Mixed (all kinds)'
   };
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
+  const lcm = (a, b) => a / gcd(a, b) * b;
   const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
   const pickF = a => a[Math.floor(Math.random() * a.length)];
   const fr = (n, d) => `<span class="fr"><span>${n}</span><span>${d}</span></span>`;
@@ -33,6 +36,19 @@
     .xSteps b{color:var(--accent)}
     .xWord{font-size:19px;line-height:1.5;margin:4px 0 6px}
     .xWord mark{background:var(--sel);color:inherit;border-radius:3px;padding:0 3px}
+    .xSym{display:inline-grid;place-items:center;min-width:56px;height:56px;border:3px dashed var(--rule);border-radius:12px;font-size:36px;color:var(--accent)}
+    .xSym.set{border-style:solid;border-color:var(--accent)}
+    .xSymBtns .btn{min-width:72px;font-size:28px;padding:6px 14px}
+    .xChips{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+    .xChip{appearance:none;background:var(--card);border:2px solid var(--rule);border-radius:12px;padding:8px 14px;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:28px;font-weight:700;cursor:pointer;color:var(--ink);box-shadow:var(--shadow)}
+    .xChip small{display:block;font-size:14px;color:var(--muted);font-weight:700}
+    .xChip.used{opacity:.3}
+    .xSlots{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:76px;padding:8px;border:2px dashed var(--rule);border-radius:12px;margin:4px 0 6px}
+    .xSlots .xChip{box-shadow:none;border-color:var(--accent)}
+    .xSlots .arrow{color:var(--muted);font-size:22px;font-weight:700}
+    .xConv{display:grid;gap:8px;margin:6px 0}
+    .xConv .row1{display:flex;align-items:center;gap:10px;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:28px;font-weight:700}
+    .xConv .op2{color:var(--accent);font-size:16px}
   </style>`);
 
   // ---------- tab and markup ----------
@@ -143,17 +159,49 @@
     const s = makeSimplify(40), w = pickF(NAMES_X);
     return Object.assign({ type:'word', name:w }, s, { type:'word' }, pickF(WORDS)(s.n, s.d, w));
   }
+  function makeCompare(){
+    const D = [2,3,4,5,6,8,10,12];
+    for(;;){
+      const r = Math.random();
+      let a, b, c, d;
+      if(r < .25){ b = d = pickF(D); a = rint(1, b - 1); c = rint(1, b - 1); if(a === c) continue; }
+      else if(r < .45){ b = pickF(D); d = pickF(D); if(b === d) continue; a = c = rint(1, Math.min(b, d) - 1); }
+      else if(r < .55){ const q = pickF([2,3,4,5,6]), p = rint(1, q - 1), k = pickF([2,3]); if(gcd(p, q) !== 1) continue; [a, b, c, d] = Math.random() < .5 ? [p, q, p*k, q*k] : [p*k, q*k, p, q]; }
+      else { b = pickF(D); d = pickF(D); if(b === d) continue; a = rint(1, b - 1); c = rint(1, d - 1); if(a * d === c * b) continue; }
+      if(lcm(b, d) > 24) continue;
+      return { type:'compare', a, b, c, d };
+    }
+  }
+  function makeOrder(){
+    const families = [[2,4,8],[3,6,12],[2,3,6],[2,5,10],[3,4,12],[2,3,4,12],[2,4,6,12]];
+    for(;;){
+      const fam = pickF(families), n = Math.random() < .35 ? 4 : 3, list = [];
+      for(let t = 0; list.length < n && t < 60; t++){
+        const d = pickF(fam), a = rint(1, d - 1);
+        if(gcd(a, d) !== 1 || list.some(f => f.a * d === a * f.b)) continue;
+        list.push({ a, b: d });
+      }
+      if(list.length < n || new Set(list.map(f => f.b)).size < 2) continue;
+      const L = list.reduce((m, f) => lcm(m, f.b), 1);
+      if(L > 24) continue;
+      return { type:'order', list, asc: Math.random() < .7, L };
+    }
+  }
   function makeSet(mode, count){
     const out = [];
     for(let i = 0; i < count; i++){
-      const m = mode === 'mixed' ? pickF(['equiv','equiv','simplify','simplify','word']) : mode;
-      out.push(m === 'equiv' ? makeEquiv() : m === 'simplify' ? makeSimplify() : makeWord());
+      const m = mode === 'mixed' ? pickF(['equiv','equiv','simplify','simplify','word','compare','compare','order']) : mode;
+      out.push(m === 'equiv' ? makeEquiv() : m === 'simplify' ? makeSimplify() : m === 'word' ? makeWord() : m === 'compare' ? makeCompare() : makeOrder());
     }
     return out;
   }
 
   // describe a problem for the missed list
+  const symOf = pb => { const x = pb.a * pb.d, y = pb.c * pb.b; return x < y ? '<' : x > y ? '>' : '='; };
+  const sortedList = pb => pb.list.slice().sort((p, q) => pb.asc ? p.a * q.b - q.a * p.b : q.a * p.b - p.a * q.b);
   function answerText(pb){
+    if(pb.type === 'compare') return fr(pb.a, pb.b) + ' ' + esc(symOf(pb)) + ' ' + fr(pb.c, pb.d);
+    if(pb.type === 'order') return sortedList(pb).map(f => fr(f.a, f.b)).join(pb.asc ? ' &lt; ' : ' &gt; ');
     if(pb.type === 'equiv'){ const t = target(pb); return equivLeft(pb) + ' = ' + (pb.kind === 'bottom' ? fr(t.top, t.ans) : fr(t.ans, t.bot)); }
     return fr(pb.n, pb.d) + ' = ' + fr(pb.p, pb.q);
   }
@@ -174,7 +222,9 @@
     X.err++; X.misses++; X.showSteps = true; X.stage = 0; X.tries = 0;
     if(pb.type !== 'equiv'){ pb.cn = pb.n; pb.cd = pb.d; pb.hist = []; }
     $('xCheck').hidden = true;
-    if(pb.type === 'equiv') renderEquiv(pb); else if(pb.type === 'simplify') renderSimplify(pb); else renderWord(pb);
+    if(pb.type === 'order') pb.sel = [];
+    if(pb.type === 'equiv') renderEquiv(pb); else if(pb.type === 'simplify') renderSimplify(pb); else if(pb.type === 'word') renderWord(pb);
+    else if(pb.type === 'compare') renderCompare(pb); else renderOrder(pb);
     setFeedback('Not quite. ' + why + ' Let\'s do this one step by step.', 'bad');
   }
   function start(list, full){
@@ -196,7 +246,9 @@
     $('xNext').textContent = X.i === X.order.length - 1 ? 'See results' : 'Next problem';
     if(pb.type === 'equiv') renderEquiv(pb);
     else if(pb.type === 'simplify'){ pb.cn = pb.n; pb.cd = pb.d; pb.hist = []; renderSimplify(pb); }
-    else { pb.cn = pb.n; pb.cd = pb.d; pb.hist = []; renderWord(pb); }
+    else if(pb.type === 'word'){ pb.cn = pb.n; pb.cd = pb.d; pb.hist = []; renderWord(pb); }
+    else if(pb.type === 'compare') renderCompare(pb);
+    else { pb.sel = []; renderOrder(pb); }
   }
   function solved(text){
     X.done = true;
@@ -352,10 +404,125 @@
     renderSimplify(pb, wordIntro(pb, true));
   }
 
+  // ----- shared step: pick a common bottom number, then rewrite each fraction -----
+  const convList = pb => pb.type === 'compare' ? [{ a: pb.a, b: pb.b }, { a: pb.c, b: pb.d }] : pb.list;
+  const commonBottom = pb => convList(pb).reduce((m, f) => lcm(m, f.b), 1);
+  function bottomChoices(pb){
+    const L = commonBottom(pb), bs = [...new Set(convList(pb).map(f => f.b))];
+    const opts = new Set([L]);
+    const prod = bs.reduce((m, b) => m * b, 1); if(prod !== L && prod <= 60) opts.add(prod);
+    opts.add(bs.reduce((m, b) => m + b, 0)); opts.add(Math.max(...bs) + 1);
+    return shuffle([...opts].slice(0, 4));
+  }
+  function bottomStepHtml(pb){
+    const bs = [...new Set(convList(pb).map(f => f.b))];
+    return `<p class="xQ">To compare, give them the same bottom number. What number can ${bs.join(', ').replace(/, ([^,]*)$/, ' and $1')} all go into?</p>
+      <div class="xBtns">${bottomChoices(pb).map(o => `<button class="btn quiet" data-l="${o}">${o}</button>`).join('')}</div>`;
+  }
+  function wireBottom(pb, render){
+    const L = commonBottom(pb);
+    $('xBody').querySelectorAll('[data-l]').forEach(b => b.onclick = () => {
+      const v = +b.dataset.l;
+      if(v === L){ X.stage = 1; setFeedback('Yes, ' + L + '. Now rewrite each fraction with ' + L + ' on the bottom.', 'ok'); render(pb); }
+      else if(convList(pb).every(f => v % f.b === 0)) mistake(v + ' works, but ' + L + ' is smaller and easier. Look for the smallest number they all go into.');
+      else mistake(convList(pb).filter(f => v % f.b).map(f => f.b).join(' and ') + ' doesn\'t go into ' + v + ' evenly. Try counting by ' + Math.max(...convList(pb).map(f => f.b)) + 's.');
+    });
+  }
+  function convertHtml(pb){
+    const L = commonBottom(pb);
+    return `<p class="xQ">Rewrite each one with ${L} on the bottom. Multiply the top by the same number as the bottom:</p><div class="xConv">` +
+      convList(pb).map((f, i) => `<div class="row1">${fr(f.a, f.b)} <span class="op2">×${L / f.b}</span> = <span class="xFrIn">${numInput('xC' + i)}<hr><span>${L}</span></span></div>`).join('') + '</div>';
+  }
+  function checkConvert(pb, next){
+    const L = commonBottom(pb), list = convList(pb);
+    const vals = list.map((f, i) => readNum('xC' + i));
+    if(vals.some(v => v === null)){ setFeedback('Fill in every top number.'); return; }
+    const wrong = list.findIndex((f, i) => vals[i] !== f.a * (L / f.b));
+    if(wrong < 0){ $('xCheck').hidden = true; next(); return; }
+    const f = list[wrong];
+    mistake(f.b + ' × ' + (L / f.b) + ' = ' + L + ', so multiply the top by ' + (L / f.b) + ' too: ' + f.a + ' × ' + (L / f.b) + ' = ?');
+  }
+
+  // ----- compare (<, >, =) -----
+  function compareWhy(pb){
+    const s = symOf(pb), L = lcm(pb.b, pb.d);
+    if(pb.b === pb.d) return 'The bottoms are the same, so just compare the tops: ' + pb.a + ' ' + s + ' ' + pb.c + '.';
+    if(pb.a === pb.c) return 'The tops are the same. A bigger bottom means smaller pieces, so ' + (pb.b > pb.d ? pb.a + '/' + pb.b : pb.c + '/' + pb.d) + ' is the smaller fraction.';
+    const A = pb.a * L / pb.b, C = pb.c * L / pb.d;
+    if(s === '=') return 'They\'re equal: with ' + L + ' on the bottom, both are ' + A + '/' + L + '.';
+    return 'With ' + L + ' on the bottom: ' + pb.a + '/' + pb.b + ' = ' + A + '/' + L + ' and ' + pb.c + '/' + pb.d + ' = ' + C + '/' + L + '. ' + A + ' ' + s + ' ' + C + '.';
+  }
+  function renderCompare(pb){
+    const L = lcm(pb.b, pb.d), special = pb.b === pb.d || pb.a === pb.c;
+    const shown = X.done ? symOf(pb) : '?';
+    let html = `<p class="hint" style="margin:0">Which sign goes in the box: &lt;, &gt; or =?</p>
+      <div class="xBig" style="justify-content:center">${fr(pb.a, pb.b)} <span class="xSym${X.done ? ' set' : ''}">${esc(shown)}</span> ${fr(pb.c, pb.d)}</div>`;
+    if(steps() && !X.done){
+      html += `<div class="xEq">${pie(pb.a, pb.b, 84)}<span class="op"></span>${pie(pb.c, pb.d, 84)}</div>`;
+      if(special && X.stage === 0) X.stage = 2;
+      if(X.stage === 0){ $('xBody').innerHTML = html + bottomStepHtml(pb); wireBottom(pb, renderCompare); return; }
+      if(X.stage === 1){ $('xBody').innerHTML = html + convertHtml(pb); $('xCheck').hidden = false; $('xC0').focus(); return; }
+      if(pb.b === pb.d) html += '<p class="xQ">The bottoms are the same, so the bigger top is the bigger fraction.</p>';
+      else if(pb.a === pb.c) html += '<p class="xQ">The tops are the same. A bigger bottom means smaller pieces.</p>';
+      else html += `<p class="xQ">${fr(pb.a * L / pb.b, L)} and ${fr(pb.c * L / pb.d, L)}: compare the tops.</p>`;
+    }
+    if(!X.done){
+      html += `<div class="xBtns xSymBtns">${['<','=','>'].map(o => `<button class="btn quiet" data-s="${o}">${esc(o)}</button>`).join('')}</div>
+        <p class="hint" style="margin:4px 0 0">Tip: the open side of &lt; or &gt; faces the bigger fraction.</p>`;
+    }
+    $('xBody').innerHTML = html;
+    $('xBody').querySelectorAll('[data-s]').forEach(b => b.onclick = () => pickSym(pb, b.dataset.s));
+  }
+  function pickSym(pb, sym){
+    if(X.done) return;
+    X.tries++;
+    if(sym === symOf(pb)){ solved('Correct. ' + compareWhy(pb)); renderCompare(pb); return; }
+    let why = compareWhy(pb);
+    if(pb.a === pb.c && sym !== '=') why = 'Careful: a bigger bottom number means smaller pieces. ' + why;
+    if(X.stepsMode === 'missed' && !X.showSteps) switchToSteps(pb, why);
+    else if(X.tries < 2) mistake('Not quite. ' + why);
+    else { X.misses++; X.done = true; revealed('The answer is ' + esc(symOf(pb)) + '. ' + why); renderCompare(pb); }
+  }
+
+  // ----- put in order -----
+  function renderOrder(pb){
+    const L = pb.L, dir = pb.asc ? 'least to greatest' : 'greatest to least';
+    let html = `<p class="xQ" style="margin-top:0">Put these in order from <u>${dir}</u>.</p>`;
+    if(steps() && !X.done && X.stage === 0){ $('xBody').innerHTML = html + `<div class="xChips">${pb.list.map(f => `<span class="xChip">${fr(f.a, f.b)}</span>`).join('')}</div>` + bottomStepHtml(pb); wireBottom(pb, renderOrder); return; }
+    if(steps() && !X.done && X.stage === 1){ $('xBody').innerHTML = html + convertHtml(pb); $('xCheck').hidden = false; $('xC0').focus(); return; }
+    const showConv = steps() || X.done;
+    const chip = (f, i, used) => `<button class="xChip${used ? ' used' : ''}" data-i="${i}" ${used || X.done ? 'disabled' : ''}>${fr(f.a, f.b)}${showConv ? `<small>= ${f.a * L / f.b}/${L}</small>` : ''}</button>`;
+    const placed = X.done ? sortedList(pb).map(f => pb.list.indexOf(f)) : pb.sel;
+    html += `<div class="xChips">${pb.list.map((f, i) => chip(f, i, pb.sel.includes(i) || X.done)).join('')}</div>
+      <p class="hint" style="margin:0">${pb.asc ? 'Least' : 'Greatest'} first. Tap a fraction to place it, and tap a placed one to take it back.</p>
+      <div class="xSlots" id="xSlots">${placed.map((i, k) => (k ? `<span class="arrow">${pb.asc ? '&lt;' : '&gt;'}</span>` : '') + `<button class="xChip" data-back="${i}" ${X.done ? 'disabled' : ''}>${fr(pb.list[i].a, pb.list[i].b)}${showConv ? `<small>= ${pb.list[i].a * L / pb.list[i].b}/${L}</small>` : ''}</button>`).join('')}</div>`;
+    $('xBody').innerHTML = html;
+    if(X.done) return;
+    $('xBody').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { pb.sel.push(+b.dataset.i); renderOrder(pb); });
+    $('xBody').querySelectorAll('[data-back]').forEach(b => b.onclick = () => { pb.sel = pb.sel.filter(x => x !== +b.dataset.back); renderOrder(pb); });
+    $('xCheck').hidden = pb.sel.length !== pb.list.length;
+  }
+  function checkOrder(pb){
+    if(pb.sel.length !== pb.list.length){ setFeedback('Place every fraction first.'); return; }
+    X.tries++;
+    const want = sortedList(pb).map(f => pb.list.indexOf(f));
+    if(pb.sel.every((i, k) => i === want[k])){ solved('Correct. With ' + pb.L + ' on the bottom they are ' + sortedList(pb).map(f => f.a * pb.L / f.b + '/' + pb.L).join(', ') + '.'); renderOrder(pb); return; }
+    const byBottom = pb.sel.map(i => pb.list[i].b);
+    const sortedByBottom = byBottom.every((b, k) => !k || (pb.asc ? b >= byBottom[k - 1] : b <= byBottom[k - 1]));
+    let why = 'Give them the same bottom (' + pb.L + '): ' + pb.list.map(f => f.a + '/' + f.b + ' = ' + (f.a * pb.L / f.b) + '/' + pb.L).join(', ') + '. Then order the tops.';
+    if(sortedByBottom) why = 'It looks like you went by the bottom numbers. A bigger bottom means smaller pieces, not a bigger fraction. ' + why;
+    if(X.stepsMode === 'missed' && !X.showSteps){ pb.sel = []; switchToSteps(pb, why); }
+    else if(X.tries < 2){ pb.sel = []; mistake('Not quite. ' + why); renderOrder(pb); }
+    else { X.misses++; X.done = true; revealed('The order is ' + answerText(pb) + '. ' + why); renderOrder(pb); }
+  }
+
   function check(){
     if(!X || X.done) return;
     const pb = X.order[X.i];
-    if(pb.type === 'equiv') checkEquiv(pb); else checkFraction(pb);
+    if(pb.type === 'equiv') checkEquiv(pb);
+    else if(pb.type === 'compare') checkConvert(pb, () => { X.stage = 2; setFeedback('Now both have the same bottom. Compare the tops.', 'ok'); renderCompare(pb); });
+    else if(pb.type === 'order'){ if(steps() && X.stage === 1) checkConvert(pb, () => { X.stage = 2; setFeedback('Now they all have the same bottom. Put them in order by the tops.', 'ok'); renderOrder(pb); }); else checkOrder(pb); }
+    else checkFraction(pb);
   }
   $('xCheck').onclick = check;
   $('xNext').onclick = () => { if(X.i < X.order.length - 1){ X.i++; show(); } else finish(); };
@@ -370,7 +537,7 @@
     $('xMissedWrap').hidden = !X.missed.length; $('xRetry').hidden = !X.missed.length;
     $('xMissedList').innerHTML = X.missed.map(pb => `<li style="font-size:20px">${answerText(pb)}</li>`).join('');
   }
-  const fresh = pb => { const c = Object.assign({}, pb); delete c.cn; delete c.cd; delete c.hist; return c; };
+  const fresh = pb => { const c = Object.assign({}, pb); delete c.cn; delete c.cd; delete c.hist; delete c.sel; return c; };
   $('xStart').onclick = () => start();
   $('xAgain').onclick = () => start();
   $('xRetry').onclick = () => start(X.missed.map(fresh), false);
