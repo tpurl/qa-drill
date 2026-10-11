@@ -5,7 +5,7 @@
     equiv:    'Equivalent fractions',
     simplify: 'Simplify step by step',
     word:     'Word problems',
-    mixed:    'Mixed check (like a worksheet)'
+    mixed:    'Mixed (all kinds)'
   };
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
@@ -42,9 +42,10 @@
   <section id="tab-frac" hidden>
     <div class="panel" id="fracSetup">
       <h2 style="font-size:24px;margin-bottom:12px">Fractions</h2>
-      <p class="hint">The big rule: whatever you do to the bottom, do the same to the top. Practice shows each step; Mixed check works like a worksheet. New problems are made every time.</p>
+      <p class="hint">The big rule: whatever you do to the bottom, do the same to the top. Choose whether to show the steps every time, never, or only on the problems he gets wrong. New problems are made every time.</p>
       <div class="opts">
         <label>Practice <select id="xMode">${Object.entries(MODES).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label>Steps <select id="xSteps"><option value="always">show the steps</option><option value="missed">only on ones he misses</option><option value="never">no steps (like a worksheet)</option></select></label>
         <label>Problems <select id="xCount"><option>5</option><option selected>8</option><option>10</option><option>12</option></select></label>
       </div>
       <button class="btn" id="xStart">Start fractions</button>
@@ -84,6 +85,7 @@
       baseShowTab('edit');
       $('tab-edit').hidden = true; $('tab-frac').hidden = false;
       nav.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', b === myBtn));
+      if(data.fracSteps) $('xSteps').value = data.fracSteps;
       showSetupBest('frac');
     } else {
       baseShowTab(name);
@@ -93,7 +95,7 @@
   myBtn.onclick = () => showTab('frac');
   CLOCK.frac = 'xClock';
   const baseRunKey = runKey, baseRangeLabel = rangeLabel;
-  runKey = mode => mode === 'frac' ? 'frac|' + $('xMode').value + '|' + $('xCount').value : baseRunKey(mode);
+  runKey = mode => mode === 'frac' ? 'frac|' + $('xMode').value + '|' + $('xSteps').value + '|' + $('xCount').value : baseRunKey(mode);
   rangeLabel = mode => mode === 'frac' ? $('xCount').value + ' problems (' + MODES[$('xMode').value].toLowerCase() + ')' : baseRangeLabel(mode);
   $('fracSetup').addEventListener('change', () => showSetupBest('frac'));
 
@@ -164,10 +166,20 @@
 
   // ---------- run ----------
   let X = null;
-  const steps = () => X.mode !== 'mixed';
+  // steps: always, never, or only after a wrong answer on that problem
+  const steps = () => X.stepsMode === 'always' || (X.stepsMode === 'missed' && X.showSteps);
+  $('xSteps').onchange = () => { data.fracSteps = $('xSteps').value; save(); };
+  // first wrong answer with "only on ones he misses": count it, then walk through it step by step
+  function switchToSteps(pb, why){
+    X.err++; X.misses++; X.showSteps = true; X.stage = 0; X.tries = 0;
+    if(pb.type !== 'equiv'){ pb.cn = pb.n; pb.cd = pb.d; pb.hist = []; }
+    $('xCheck').hidden = true;
+    if(pb.type === 'equiv') renderEquiv(pb); else if(pb.type === 'simplify') renderSimplify(pb); else renderWord(pb);
+    setFeedback('Not quite. ' + why + ' Let\'s do this one step by step.', 'bad');
+  }
   function start(list, full){
     const mode = $('xMode').value;
-    X = { mode, order: list || makeSet(mode, +$('xCount').value), i:0, score:0, misses:0, missed:[], err:0, stage:0, done:false };
+    X = { mode, stepsMode: $('xSteps').value, showSteps:false, order: list || makeSet(mode, +$('xCount').value), i:0, score:0, misses:0, missed:[], err:0, stage:0, done:false };
     timerStart('frac', full !== false);
     $('fracSetup').hidden = true; $('fracDone').hidden = true; $('fracRun').hidden = false;
     show();
@@ -176,7 +188,7 @@
   function mistake(text){ X.err++; X.misses++; setFeedback(text, 'bad'); }
   function show(){
     const pb = X.order[X.i];
-    X.err = 0; X.stage = 0; X.done = false; X.tries = 0;
+    X.err = 0; X.stage = 0; X.done = false; X.tries = 0; X.showSteps = false;
     $('xPos').textContent = 'Problem ' + (X.i + 1) + ' of ' + X.order.length;
     $('xScore').textContent = X.score + ' correct';
     $('xBar').style.width = (X.i / X.order.length * 100) + '%';
@@ -259,7 +271,8 @@
       if(x * pb.k === pb.b) why = 'The top was multiplied by ' + pb.k + ', but you divided the bottom. Do the same to both.';
       else why = 'The top was multiplied by ' + pb.k + '. Multiply the bottom by ' + pb.k + ' too.';
     }
-    if(X.tries < 2){ mistake('Not quite. ' + why); $('xNum').select(); }
+    if(X.stepsMode === 'missed' && !X.showSteps) switchToSteps(pb, why);
+    else if(X.tries < 2){ mistake('Not quite. ' + why); $('xNum').select(); }
     else { X.misses++; X.done = true; revealed('The answer is ' + t.ans + '. ' + why.replace(/ = \?$/, ' = ' + t.ans)); renderEquiv(pb); }
   }
 
@@ -315,7 +328,8 @@
     else if(t * pb.d === b * pb.n) why = fr(t, b) + ' is equal, but not simplest. Both ' + t + ' and ' + b + ' can still be divided by ' + gcd(t, b) + '.';
     else if(t && b && pb.n % t === 0 && pb.d % b === 0 && pb.n / t !== pb.d / b) why = 'You divided the top by ' + (pb.n / t) + ' and the bottom by ' + (pb.d / b) + '. Divide both by the same number.';
     else why = 'Find a number that divides both ' + pb.n + ' and ' + pb.d + '. Hint: try ' + gcd(pb.n, pb.d) + '.';
-    if(X.tries < 2){ mistake('Not quite. ' + why); $('xTop').select(); }
+    if(X.stepsMode === 'missed' && !X.showSteps) switchToSteps(pb, why);
+    else if(X.tries < 2){ mistake('Not quite. ' + why); $('xTop').select(); }
     else { X.misses++; X.done = true; revealed('The answer is ' + fr(pb.p, pb.q) + '. ' + why); renderSimplify(Object.assign(pb, { cn: pb.p, cd: pb.q }), pb.type === 'word' ? wordIntro(pb, true) : ''); }
   }
 
