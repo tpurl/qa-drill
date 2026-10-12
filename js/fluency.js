@@ -2,7 +2,8 @@
 // The week's fluency passage with a stopwatch, a daily time log against the goal, a read-aloud at goal pace,
 // and the vocabulary words highlighted (tap one to see what it means).
 (function(){
-  const PASSAGE = {
+  // this week's passage comes from week.js; the one below is the fallback
+  const PASSAGE = window.WEEK_PASSAGE || {
     id: '2026-10-05', title: 'The Power of a Good Idea', goal: 150,   // goal in seconds (2 min 30 sec)
     // times written on the sheet that week (Mon to Thu)
     sheetTimes: [['2026-10-05', 210], ['2026-10-06', 200], ['2026-10-07', 225], ['2026-10-08', 197]],
