@@ -16,12 +16,20 @@ Object.assign(PH, THIS_WEEK.phonics);
 const baseLoadWeek = load;
 load = function(){
   baseLoadWeek();
+  // the Spelling words list follows the packet's order (1-5 Monday, 6-10 Tuesday, 11-15 Wednesday)
+  if(!data.sheetOrderDefault){
+    data.sheetOrderDefault = true;
+    const sw = data.sets.find(st => st.name === 'Spelling words');
+    if(sw){ sw.order = 'sheet'; if(data.cur === sw.id) data.group = 0; }
+    save();
+  }
   if(data.weekList === THIS_WEEK.id) return;
   data.weekList = THIS_WEEK.id;
   let set = data.sets.find(st => st.name === 'Spelling words');
   if(!set){ set = { id: uid(), name: 'Spelling words', items: [] }; data.sets.push(set); }
   set.items = THIS_WEEK.words.map(([q, a, syl, snd]) => ({ id: uid(), q, a, syl, snd }));
   if(!set.caps || set.caps === 'none') set.caps = 'first';
+  set.order = 'sheet';
   data.cur = set.id; data.group = 0; items = set.items; justSeeded = true;
   save();
 };
