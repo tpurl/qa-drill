@@ -24,4 +24,13 @@ $('orderSel').onchange = () => {
 };
 const baseRenderListOrder = renderList;
 renderList = function(){ baseRenderListOrder(); $('orderSel').value = curSet().order === 'sheet' ? 'sheet' : 'abc'; };
+
+// definitions: exactly as the packet unless "mix in other wordings" is turned on
+const baseDefOfLists = defOf;
+defOf = it => data.mixDefs ? baseDefOfLists(it) : it.a;
+const mixBox = id => '<label class="check"><input type="checkbox" class="mixDefs"> Mix in other wordings of the definitions (tests sometimes reword them)</label>';
+['quizSetup', 'matchSetup'].forEach(id => $(id).querySelector('.opts').insertAdjacentHTML('beforeend', mixBox()));
+document.querySelectorAll('.mixDefs').forEach(x => x.onchange = () => { data.mixDefs = x.checked; save(); document.querySelectorAll('.mixDefs').forEach(y => y.checked = data.mixDefs); });
+const baseRenderListMix = renderList;
+renderList = function(){ baseRenderListMix(); document.querySelectorAll('.mixDefs').forEach(y => y.checked = !!data.mixDefs); };
 (window.LOADED_EXTRA = window.LOADED_EXTRA || []).push('js/lists.js');
