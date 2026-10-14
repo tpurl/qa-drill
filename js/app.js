@@ -175,26 +175,40 @@ const sortKey = it => { const m = it.q.trim().match(CAP_RE); return (m ? m[1] : 
 const sortedItems = () => (curSet() && curSet().order === 'sheet') ? items.slice() : items.slice().sort((x,y) => sortKey(x).localeCompare(sortKey(y)));
 const groupCount = () => Math.ceil(items.length / GROUP);
 const shortName = it => { const m = it.q.trim().match(CAP_RE); const t = (m ? m[1] : it.q).trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+// a group is one set of 5 (0, 1, 2...), 'toN' for the first N sets together (to2 = words 1-10), or 'all'
+const isUpTo = g => typeof g === 'string' && /^to\d+$/.test(g);
+const groupSpan = g => g === 'all' ? [0, items.length] : isUpTo(g) ? [0, Math.min(+g.slice(2) * GROUP, items.length)] : [g * GROUP, Math.min(g * GROUP + GROUP, items.length)];
 function groupLabel(g){
   if(g === 'all') return 'All ' + items.length;
-  const so = sortedItems(), a = g*GROUP, b = Math.min(a+GROUP, so.length);
+  const so = sortedItems(), [a, b] = groupSpan(g);
   if(!so.length) return 'None yet';
   return (a+1) + '–' + b + ': ' + shortName(so[a]) + (b-1 > a ? ' to ' + shortName(so[b-1]) : '');
 }
-function curGroup(){ const g = data.group; if(g === 'all') return groupCount() > 1 ? 'all' : 0; const n = +g || 0; return n < groupCount() ? n : 0; }
+function curGroup(){
+  const g = data.group, G = groupCount();
+  if(g === 'all') return G > 1 ? 'all' : 0;
+  if(isUpTo(g)) return +g.slice(2) >= 2 && +g.slice(2) < G ? g : 0;
+  const n = +g || 0; return n < G ? n : 0;
+}
 function fillRanges(){
   const G = Math.max(groupCount(), 1), cur = curGroup();
-  const opts = [...Array(G).keys()].concat(G > 1 ? ['all'] : []);
+  const ups = []; for(let k = 2; k < G; k++) ups.push('to' + k);
+  const opts = [...Array(G).keys()].concat(ups, G > 1 ? ['all'] : []);
   document.querySelectorAll('select.range').forEach(sel => {
     sel.innerHTML = opts.map(g => `<option value="${g}">${esc(groupLabel(g))}</option>`).join('');
     sel.value = String(cur);
   });
 }
 const rangeVal = () => String(curGroup());
-function setRange(g){ data.group = g; save(); fillRanges(); if(typeof showAllSetupBest === 'function') showAllSetupBest(); }
-document.querySelectorAll('select.range').forEach(sel => sel.onchange = () => setRange(sel.value === 'all' ? 'all' : +sel.value));
-const poolNow = () => { const so = sortedItems(), g = curGroup(); return g === 'all' ? so : so.slice(g*GROUP, g*GROUP + GROUP); };
-const nextN = () => { const g = curGroup(); return (g !== 'all' && g + 1 < groupCount()) ? g + 1 : 0; };
+function setRange(g){
+  if(typeof g === 'string' && g !== 'all' && !isUpTo(g)) g = +g;
+  if(typeof g === 'number' && isNaN(g)) return;   // an older menu handler that only knows single groups
+  data.group = g; save(); fillRanges(); if(typeof showAllSetupBest === 'function') showAllSetupBest();
+}
+// every "Use" menu, including ones added by other tabs
+document.addEventListener('change', e => { if(e.target.matches('select.range')) setRange(e.target.value); }, true);
+const poolNow = () => { const [a, b] = groupSpan(curGroup()); return sortedItems().slice(a, b); };
+const nextN = () => { const g = curGroup(); return (typeof g === 'number' && g + 1 < groupCount()) ? g + 1 : 0; };
 function stepLabel(btn, verb){
   const n = nextN(); btn.hidden = !n;
   if(n) btn.textContent = verb + ' with ' + (n*GROUP + 1) + '–' + Math.min((n+1)*GROUP, items.length);
@@ -346,7 +360,8 @@ const bestsFor = key => ((data.best || {})[key] || []);
 function fmtT(ms){ const s = Math.round(ms/1000); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
 function rangeLabel(mode){
   if(mode === 'fake') return $('fakeCount').value + ' made-up words (' + FAKE_FOCUS[$('fakeFocus').value].name.toLowerCase() + ', ' + ($('fakeMode').value === 'read' ? 'reading' : 'spelling') + ')';
-  const g = curGroup(); return g === 'all' ? 'all ' + items.length : 'words ' + (g*GROUP + 1) + '–' + Math.min(g*GROUP + GROUP, items.length);
+  const g = curGroup(); if(g === 'all') return 'all ' + items.length;
+  const [a, b] = groupSpan(g); return 'words ' + (a + 1) + '–' + b;
 }
 function showSetupBest(mode){
   const el = $(mode + 'SetupBest'); if(!el || !curSet()) return;
