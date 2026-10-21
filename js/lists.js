@@ -56,4 +56,55 @@ const baseLoadMonths = load;
 load = function(){ baseLoadMonths(); if(!data.monthsAdded){ data.monthsAdded = true; addMonthsList(false); } };
 $('states').insertAdjacentHTML('afterend', ' <button class="btn quiet" id="monthsBtn">Load months of the year</button>');
 $('monthsBtn').onclick = () => addMonthsList(true);
+
+// Government: the three branches, plus the President and Vice President (in a set order, like a lesson)
+// Current as of October 2026: Donald Trump (47th President) and JD Vance (Vice President), in office since January 20, 2025.
+const GOV = [
+  ['How many branches does the U.S. government have?', 'Three'],
+  ['Which branch makes the laws?', 'Legislative branch'],
+  ['Which branch carries out the laws?', 'Executive branch'],
+  ['Which branch explains the laws and decides if they are fair?', 'Judicial branch'],
+  ['What is the legislative branch called?', 'Congress'],
+  ['What are the two parts of Congress?', 'The Senate and the House of Representatives'],
+  ['How many senators does each state have?', 'Two'],
+  ['Where does Congress meet?', 'The U.S. Capitol'],
+  ['Who leads the executive branch?', 'The President'],
+  ['Who is the President of the United States?', 'Donald Trump'],
+  ['Who is the Vice President of the United States?', 'JD Vance'],
+  ['What number President is Donald Trump?', '47th'],
+  ['How many years is a President\'s term?', 'Four'],
+  ['Where does the President live and work?', 'The White House'],
+  ['Who takes over if the President can\'t do the job?', 'The Vice President'],
+  ['What does the Vice President do when the Senate has a tie vote?', 'Breaks the tie'],
+  ['What is the highest court in the judicial branch?', 'The Supreme Court'],
+  ['How many justices are on the Supreme Court?', 'Nine'],
+  ['What keeps one branch from getting too powerful?', 'Checks and balances'],
+  ['What document set up the three branches?', 'The Constitution']
+];
+Object.assign(NAMES, {
+  'Legislative branch': ['Leg-is-la-tive branch', 'LEJ-is-lay-tiv BRANCH', 'Legislative makes the laws. Think "legal."'],
+  'Executive branch': ['Ex-ec-u-tive branch', 'ig-ZEK-yoo-tiv BRANCH', 'The executive branch carries out the laws. The President leads it.'],
+  'Judicial branch': ['Ju-di-cial branch', 'joo-DISH-ul BRANCH', 'Judicial sounds like judge. Judges decide what the laws mean.'],
+  'Congress': ['Con-gress', 'KONG-gris'],
+  'The Supreme Court': ['The Su-preme Court', 'thuh suh-PREEM KORT'],
+  'The U.S. Capitol': ['The U S Cap-i-tol', 'thuh YOO ES KAP-ih-tul', 'Capitol with an o is the building. Capital with an a is a city, like a state capital.'],
+  'Checks and balances': ['Checks and bal-an-ces', 'CHEKS and BAL-un-siz', 'Each branch can check, or stop, the others.'],
+  'The Constitution': ['The Con-sti-tu-tion', 'thuh kon-stih-TOO-shun'],
+  'Donald Trump': ['Don-ald Trump', 'DON-uld TRUMP'],
+  'JD Vance': ['J D Vance', 'JAY DEE VANS']
+});
+['Legislative branch','Executive branch','Judicial branch','Congress','The Supreme Court','The U.S. Capitol','Checks and balances','The Constitution','Donald Trump','JD Vance'].forEach(k => { NAMES_LC[k.toLowerCase()] = NAMES[k]; });
+function addGovList(switchToIt){
+  let set = data.sets.find(st => st.name === 'Government');
+  if(!set){ set = { id: uid(), name: 'Government', order: 'sheet', caps: 'none', sayCols: 'a', items: GOV.map(([q, a]) => ({ id: uid(), q, a })) }; data.sets.push(set); }
+  if(switchToIt){ switchTo(set.id); $('bulkMsg').textContent = 'Government is ready. Try Multiple choice, Matching or Flashcards.'; }
+  else save();
+}
+const baseLoadGov = load;
+load = function(){ baseLoadGov(); if(!data.govAdded){ data.govAdded = true; addGovList(false); } };
+$('monthsBtn').insertAdjacentHTML('afterend', ' <button class="btn quiet" id="govBtn">Load government</button>');
+$('govBtn').onclick = () => addGovList(true);
+// keep the Use menu short when the first column is a long question: just "1–5", "6–10"...
+const baseGroupLabel = groupLabel;
+groupLabel = g => { const L = baseGroupLabel(g); return L.length > 48 ? L.split(':')[0] : L; };
 (window.LOADED_EXTRA = window.LOADED_EXTRA || []).push('js/lists.js');
