@@ -170,18 +170,32 @@
   function remainingMs(steps, n, t){
     return steps.reduce((a, st) => { const r = n.rows[st.i] || {}; if(r.e) return a; const est = st.est * 60000; return a + (r.s ? Math.max(0, est - (t - r.s)) : est); }, 0);
   }
+  // when each step runs: done steps use their real times; the running step ends at its estimate (or now, if it's
+  // gone over); every step after that starts when the one before it is expected to finish
+  function schedule(steps, n, t){
+    let cur = n.start ? n.start : planStart(steps);
+    const out = {};
+    steps.forEach(st => {
+      const r = n.rows[st.i] || {}, est = st.est * 60000;
+      if(r.e){ out[st.i] = { s: r.s, e: r.e }; cur = r.e; }
+      else if(r.s){ const e = Math.max(r.s + est, t); out[st.i] = { s: r.s, e }; cur = e; }
+      else { out[st.i] = { s: cur, e: cur + est }; cur += est; }
+    });
+    out.end = cur; return out;
+  }
+  const rng = (a, b) => { const A = clock(a), B = clock(b), pa = A.slice(-2), pb = B.slice(-2); return (pa === pb && /[AP]M/i.test(pa) ? A.slice(0, -3) : A) + '–' + B; };
   const diffTxt = (ms) => { const m = Math.round(ms / 60000); return m === 0 ? 'right on time' : hm(Math.abs(ms)) + ' ' + (m > 0 ? 'over' : 'under'); };
-  function breakLabel(r, t){
+  function breakLabel(r, t, w){
     const done = !!r.e, run = r.s && !r.e;
     const used = r.s ? (r.e || t) - r.s : 0, left = BREAK_MIN * 60000 - used, over = !!r.s && left < 0;
-    const text = done ? `✓ Break: ${hm(used)}${used > BREAK_MIN * 60000 + 30000 ? ' (' + hm(used - BREAK_MIN * 60000) + ' over)' : ''}`
-      : run ? (over ? `Break: ${mmss(-left)} over. Tap when it's over` : `Break: ${mmss(left)} left. Tap when it's over`) : `Break (${BREAK_MIN} min). Tap to start`;
+    const text = done ? `✓ Break ${rng(r.s, r.e)}: ${hm(used)}${used > BREAK_MIN * 60000 + 30000 ? ' (' + hm(used - BREAK_MIN * 60000) + ' over)' : ''}`
+      : run ? (over ? `Break: ${mmss(-left)} over. Tap when it's over` : `Break: ${mmss(left)} left. Tap when it's over`) : `Break ${w ? rng(w.s, w.e) : ''} (${BREAK_MIN} min). Tap to start`;
     return { text, over };
   }
-  function actLabel(r, t, est){
+  function actLabel(r, t, est, w){
     const took = r.s ? (r.e || t) - r.s : 0;
-    return r.e ? `${clock(r.s)} to ${clock(r.e)}: took ${hm(took)} (${diffTxt(took - est * 60000)})`
-      : r.s ? `Started ${clock(r.s)}: ${mmss(took)} of ${est} min. Tap when done` : `Estimate: ${est} min`;
+    return r.e ? `${rng(r.s, r.e)}: took ${hm(took)} (${diffTxt(took - est * 60000)})`
+      : r.s ? `${rng(r.s, r.s + est * 60000)}: ${mmss(took)} of ${est} min. Tap when done` : `${w ? rng(w.s, w.e) : ''} (${est} min)`;
   }
   function summary(steps, n, t){
     const tasks = steps.filter(s => !s.brk), doneN = tasks.filter(s => n.rows[s.i] && n.rows[s.i].e).length, breaks = steps.length - tasks.length;
@@ -189,7 +203,7 @@
     const plan = planMin(steps) * 60000, ps = planStart(steps);
     const planLine = `<span>Plan: ${tasks.length} step${tasks.length === 1 ? '' : 's'} + ${breaks} break${breaks === 1 ? '' : 's'}<b>${hm(plan)}</b></span><span>Planned finish<b>${clock(ps + plan)}</b> if started at ${clock(ps)}</span>`;
     if(!n.start) return planLine;
-    const proj = allDone ? end : t + remainingMs(steps, n, t);
+    const proj = allDone ? end : schedule(steps, n, t).end;
     return `<span>Started<b>${clock(n.start)}</b></span><span>${allDone ? 'Finished' : 'Time so far'}<b>${allDone ? clock(end) + ' (' + hm(end - n.start) + ')' : hm(t - n.start)}</b></span>` +
       `<span>Work time<b>${hm(tt.work)}</b></span><span>Break time<b>${hm(tt.brk)}</b> ${tt.nBrk} of ${breaks} breaks</span>` +
       `<span>${allDone ? 'Planned' : 'Planned finish'}<b>${allDone ? hm(plan) : clock(n.start + plan)}</b></span><span>${allDone ? 'Compared to plan' : 'Finish at this pace'}<b>${allDone ? diffTxt((end - n.start) - plan) : clock(proj)}</b></span>`;
@@ -198,10 +212,11 @@
   function tick(){
     const steps = parse(listText(day)), n = night(), t = now();
     $('clSum').innerHTML = summary(steps, n, t);
-    $('clList').querySelectorAll('li.run').forEach(li => {
-      const r = n.rows[+li.dataset.i]; if(!r) return;
-      if(li.classList.contains('clBreak')){ const L = breakLabel(r, t); li.querySelector('.bt').textContent = L.text; li.classList.toggle('over', L.over); }
-      else { const a = li.querySelector('.act'); const st = steps.find(x => x.i === +li.dataset.i); if(a && st) a.textContent = actLabel(r, t, st.est); }
+    const sc = schedule(steps, n, t);
+    $('clList').querySelectorAll('li:not(.done)').forEach(li => {
+      const i = +li.dataset.i, r = n.rows[i] || {}, st = steps.find(x => x.i === i); if(!st) return;
+      if(li.classList.contains('clBreak')){ const L = breakLabel(r, t, sc[i]); li.querySelector('.bt').textContent = L.text; li.classList.toggle('over', L.over); }
+      else { const a = li.querySelector('.act'); if(a) a.textContent = actLabel(r, t, st.est, sc[i]); }
     });
   }
   function render(){
@@ -218,15 +233,16 @@
     const allDone = tasks.length && doneN === tasks.length;
     $('clSum').innerHTML = summary(steps, n, t);
     // rows
+    const sc = schedule(steps, n, t);
     $('clList').innerHTML = steps.map(st => {
       const r = n.rows[st.i] || {}, run = r.s && !r.e, done = !!r.e;
       if(st.brk){
-        const L = breakLabel(r, t);
+        const L = breakLabel(r, t, sc[st.i]);
         return `<li class="clBreak${done ? ' done' : ''}${run ? ' run' : ''}${L.over && !done ? ' over' : ''}" data-i="${st.i}"><span class="bt">${L.text}</span></li>`;
       }
-      const act = actLabel(r, t, st.est);
+      const act = actLabel(r, t, st.est, sc[st.i]);
       return `<li class="clItem${done ? ' done' : ''}${run ? ' run' : ''}" data-i="${st.i}"><span class="box" data-box="1">${done ? '✓' : ''}</span>
-          <span>${st.time ? `<span class="time">Plan: ${esc(st.time)}</span>` : ''}<span class="txt">${esc(st.text)}</span>${act ? `<span class="act">${act}</span>` : ''}</span>
+          <span>${st.time ? `<span class="time">Set for ${esc(st.time)}</span>` : ''}<span class="txt">${esc(st.text)}</span>${act ? `<span class="act">${act}</span>` : ''}</span>
           ${st.link ? (st.link === 'flu' ? `<span class="go"><button class="btn quiet" data-go="flu">Fluency</button></span>` : `<span class="go"><button class="btn quiet" data-go="spell" data-g="${st.link}">Spelling</button> <button class="btn quiet" data-go="flash" data-g="${st.link}">Cards</button></span>`) : ''}</li>`;
     }).join('');
     $('clDone').hidden = !allDone;
