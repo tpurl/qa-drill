@@ -4,39 +4,26 @@
 // Each list is plain text so it is easy to change: one step per line, "time | step", and "Break" for a break.
 (function(){
   const DAYS = [['mon','Monday'],['tue','Tuesday'],['wed','Wednesday'],['thu','Thursday']];
-  const common = (practice) => [
-    '4:00 pm | Pick up Kyler and get food',
-    '4:30–5:00 pm | Eat',
-    'Break',
+  // Monday is the night the packet comes home; Tuesday to Thursday follow the same plan without the card and app steps
+  const after = (practice) => [
     practice,
-    'Break',
-    'Read fluency passage (time it)',
-    'Break',
-    'IXL computer work, 15 minutes',
-    'Break',
-    'Math',
-    'Break',
-    'Daily homework',
-    'Break',
-    'Write words in packet',
-    'Break',
+    'Read fluency passage (time it) ~10',
+    'IXL computer work',
     'Write definitions in packet',
-    'Break',
-    'IXL computer work, 15 minutes',
     'Bath',
     'Pick out clothes and get dressed',
-    'Read',
-    'Break',
     'Head home'
-  ].join('\n');
+  ];
   const DEFAULTS = {
-    mon: ['4:00 pm | Pick up Kyler and get food', '4:30–5:00 pm | Eat, and add the new weekly packet to the app', '5:00 pm | Put words and definitions on cards',
-          'Break', 'Practice words 1–5: spelling and definitions', 'Break', 'Read fluency passage (time it)', 'Break', 'IXL computer work, 15 minutes', 'Break', 'Math', 'Break', 'Daily homework',
-          'Break', 'Write words in packet', 'Break', 'Write definitions in packet', 'Break', 'IXL computer work, 15 minutes', 'Bath',
-          'Pick out clothes and get dressed', 'Read', 'Break', 'Head home'].join('\n'),
-    tue: common('Practice words 6–10: spelling and definitions'),
-    wed: common('Practice words 11–15: spelling and definitions'),
-    thu: common('Review all words: spelling and definitions')
+    mon: ['3:00 pm | Write words in packet', 'Put words and definitions on cards', '4:00 pm | Pick up Kyler and get food',
+          'Eat, and add the new weekly packet to the app']
+          .concat(after('Practice words 1–5: spelling and definitions, write words and definitions 2 times each.')).join('\n'),
+    tue: ['3:00 pm | Write words in packet', '4:00 pm | Pick up Kyler and get food', 'Eat']
+          .concat(after('Practice words 6–10: spelling and definitions, write words and definitions 2 times each.')).join('\n'),
+    wed: ['3:00 pm | Write words in packet', '4:00 pm | Pick up Kyler and get food', 'Eat']
+          .concat(after('Practice words 11–15: spelling and definitions, write words and definitions 2 times each.')).join('\n'),
+    thu: ['3:00 pm | Write words in packet', '4:00 pm | Pick up Kyler and get food', 'Eat']
+          .concat(after('Review all words: spelling and definitions, write words and definitions 2 times each.')).join('\n')
   };
 
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -122,6 +109,13 @@
   const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const todayDay = () => ({ 1:'mon', 2:'tue', 3:'wed', 4:'thu' })[new Date().getDay()] || 'mon';
   let day = null;
+  // November 2026 plan: replace the saved Tuesday-Thursday lists with the new ones (Monday was set by hand)
+  const baseLoadCl = load;
+  load = function(){
+    baseLoadCl();
+    const c = store();
+    if(!c.planNov){ c.planNov = true; ['tue','wed','thu'].forEach(d => delete c.lists[d]); if(c.lists.mon && c.lists.mon.replace(/\s+/g, ' ').trim() === DEFAULTS.mon.replace(/\s+/g, ' ').trim()) delete c.lists.mon; save(); }
+  };
   const listText = d => store().lists[d] || DEFAULTS[d];
   function parse(text){
     return text.split('\n').map(l => l.trim()).filter(Boolean).map((l, i) => {
@@ -159,13 +153,21 @@
   }
   const planMin = steps => steps.reduce((a, st) => a + st.est, 0);
   // the plan starts at the first time written in the list (4:00 pm), on today's date
-  function planStart(steps){
-    const first = steps.find(st => st.time);
-    const m = first && first.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-    const d = new Date(); let h = m ? +m[1] : 16, mi = m ? +m[2] : 0;
-    if(m && /pm/i.test(m[3] || 'pm') && h < 12) h += 12;
-    d.setHours(h, mi, 0, 0); return d.getTime();
+  // "4:00 pm" (or the start of "4:30–5:00 pm") as a time today; null if there isn't one
+  function timeOf(txt){
+    const m = txt && txt.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i); if(!m) return null;
+    const ap = m[3] || (txt.match(/(am|pm)/i) || [, 'pm'])[1];
+    let h = +m[1]; if(/pm/i.test(ap) && h < 12) h += 12; if(/am/i.test(ap) && h === 12) h = 0;
+    const d = new Date(); d.setHours(h, +m[2], 0, 0); return d.getTime();
   }
+  function planStart(steps){
+    const first = steps.find(st => timeOf(st.time) !== null);
+    if(first) return timeOf(first.time);
+    const d = new Date(); d.setHours(16, 0, 0, 0); return d.getTime();
+  }
+  // the plan by itself: estimates in order, waiting for any step with a set time (like the 4:00 pm pick-up)
+  const planEnd = steps => schedule(steps, { rows: {} }, 0).end;
+  const planMs = steps => planEnd(steps) - planStart(steps);
   // estimated time still needed: unfinished steps at their estimate, minus time already spent on the running one
   function remainingMs(steps, n, t){
     return steps.reduce((a, st) => { const r = n.rows[st.i] || {}; if(r.e) return a; const est = st.est * 60000; return a + (r.s ? Math.max(0, est - (t - r.s)) : est); }, 0);
@@ -179,7 +181,7 @@
       const r = n.rows[st.i] || {}, est = st.est * 60000;
       if(r.e){ out[st.i] = { s: r.s, e: r.e }; cur = r.e; }
       else if(r.s){ const e = Math.max(r.s + est, t); out[st.i] = { s: r.s, e }; cur = e; }
-      else { out[st.i] = { s: cur, e: cur + est }; cur += est; }
+      else { const at = timeOf(st.time); if(at !== null && at > cur) cur = at; out[st.i] = { s: cur, e: cur + est }; cur += est; }
     });
     out.end = cur; return out;
   }
@@ -200,13 +202,13 @@
   function summary(steps, n, t){
     const tasks = steps.filter(s => !s.brk), doneN = tasks.filter(s => n.rows[s.i] && n.rows[s.i].e).length, breaks = steps.length - tasks.length;
     const tt = totals(steps, n), allDone = tasks.length && doneN === tasks.length, end = allDone ? lastEnd(n) : t;
-    const plan = planMin(steps) * 60000, ps = planStart(steps);
-    const planLine = `<span>Plan: ${tasks.length} step${tasks.length === 1 ? '' : 's'} + ${breaks} break${breaks === 1 ? '' : 's'}<b>${hm(plan)}</b></span><span>Planned finish<b>${clock(ps + plan)}</b> if started at ${clock(ps)}</span>`;
+    const plan = planMs(steps), ps = planStart(steps);
+    const planLine = `<span>Plan: ${tasks.length} step${tasks.length === 1 ? '' : 's'}${breaks ? ' + ' + breaks + ' break' + (breaks === 1 ? '' : 's') : ''}<b>${hm(plan)}</b></span><span>Planned finish<b>${clock(ps + plan)}</b> if started at ${clock(ps)}</span>`;
     if(!n.start) return planLine;
     const proj = allDone ? end : schedule(steps, n, t).end;
     return `<span>Started<b>${clock(n.start)}</b></span><span>${allDone ? 'Finished' : 'Time so far'}<b>${allDone ? clock(end) + ' (' + hm(end - n.start) + ')' : hm(t - n.start)}</b></span>` +
-      `<span>Work time<b>${hm(tt.work)}</b></span><span>Break time<b>${hm(tt.brk)}</b> ${tt.nBrk} of ${breaks} breaks</span>` +
-      `<span>${allDone ? 'Planned' : 'Planned finish'}<b>${allDone ? hm(plan) : clock(n.start + plan)}</b></span><span>${allDone ? 'Compared to plan' : 'Finish at this pace'}<b>${allDone ? diffTxt((end - n.start) - plan) : clock(proj)}</b></span>`;
+      (breaks ? `<span>Work time<b>${hm(tt.work)}</b></span><span>Break time<b>${hm(tt.brk)}</b> ${tt.nBrk} of ${breaks} breaks</span>` : '') +
+      `<span>${allDone ? 'Planned' : 'Planned finish'}<b>${allDone ? hm(plan) : clock(ps + plan)}</b></span><span>${allDone ? 'Compared to plan' : 'Finish at this pace'}<b>${allDone ? diffTxt((end - n.start) - plan) : clock(proj)}</b></span>`;
   }
   // update only the running clocks, so taps aren't lost while the list redraws
   function tick(){
@@ -251,7 +253,7 @@
   }
   function saveHistory(steps, n){
     const s = store(), k = nightKey(), tt = totals(steps, n), end = lastEnd(n);
-    const rec = { k, day, date: todayKey(), start: n.start, end, work: tt.work, brk: tt.brk, plan: planMin(steps) * 60000,
+    const rec = { k, day, date: todayKey(), start: n.start, end, work: tt.work, brk: tt.brk, plan: planMs(steps),
       steps: steps.map(st => { const r = n.rows[st.i] || {}; return [st.brk ? 'Break' : st.text, r.s && r.e ? mins(r.e - r.s) : null]; }) };
     s.history = s.history.filter(h => h.k !== k); s.history.unshift(rec); s.history.splice(20); save();
   }
