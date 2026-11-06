@@ -89,14 +89,14 @@
       <div class="clDone" id="clDone" hidden>All done tonight! Great work. 🎉</div>
       <div id="clHistWrap" style="margin-top:18px" hidden>
         <h3 style="font-size:18px;margin-bottom:6px">Past nights</h3>
-        <div style="overflow-x:auto"><table class="clHist"><thead><tr><th>Night</th><th>Start</th><th>Finish</th><th>Total</th><th>Work</th><th>Breaks</th></tr></thead><tbody id="clHist"></tbody></table></div>
+        <div style="overflow-x:auto"><table class="clHist"><thead><tr><th>Night</th><th>Start</th><th>Finish</th><th>Total</th><th>vs plan</th><th>Work</th><th>Breaks</th></tr></thead><tbody id="clHist"></tbody></table></div>
       </div>
       <div class="row" style="margin-top:16px">
         <button class="btn quiet" id="clReset">Start tonight over</button>
         <button class="btn quiet" id="clEditBtn">Change this list</button>
       </div>
       <div id="clEdit" hidden style="margin-top:14px">
-        <p class="hint">One step per line. Put a time first with a | if you want one, like <code>4:00 pm | Pick up Kyler</code>. Type <code>Break</code> for a break. A step that mentions words 1–5, 6–10, 11–15, "all words" or fluency gets a button that opens that practice.</p>
+        <p class="hint">One step per line. Put a time first with a | if you want one, like <code>4:00 pm | Pick up Kyler</code>. Type <code>Break</code> for a break. Every step is estimated at 30 minutes; end a line with <code>~20</code> to estimate 20 minutes instead. A step that mentions words 1–5, 6–10, 11–15, "all words" or fluency gets a button that opens that practice.</p>
         <textarea id="clText" style="min-height:280px"></textarea>
         <div class="row" style="margin-top:10px">
           <button class="btn" id="clSave">Save list</button>
@@ -117,7 +117,7 @@
   };
   myBtn.onclick = () => showTab('check');
 
-  const BREAK_MIN = 15;
+  const BREAK_MIN = 15, TASK_MIN = 30;   // estimates: every task 30 minutes, every break 15 (a line ending in ~20 uses 20 instead)
   const store = () => { const c = (data.checklist = data.checklist || { lists: {}, done: {} }); c.nights = c.nights || {}; c.history = c.history || []; return c; };
   const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const todayDay = () => ({ 1:'mon', 2:'tue', 3:'wed', 4:'thu' })[new Date().getDay()] || 'mon';
@@ -125,16 +125,17 @@
   const listText = d => store().lists[d] || DEFAULTS[d];
   function parse(text){
     return text.split('\n').map(l => l.trim()).filter(Boolean).map((l, i) => {
-      if(/^break$/i.test(l)) return { i, brk: true, text: 'Break' };
+      if(/^break$/i.test(l)) return { i, brk: true, text: 'Break', est: BREAK_MIN };
       const m = l.match(/^([^|]+)\|(.+)$/);
-      const time = m ? m[1].trim() : '', t = m ? m[2].trim() : l;
+      let time = m ? m[1].trim() : '', t = m ? m[2].trim() : l, est = TASK_MIN;
+      const em = t.match(/\s*~\s*(\d+)\s*(min)?\s*$/i); if(em){ est = +em[1]; t = t.slice(0, em.index).trim(); }
       // link steps that mention a group of words, or fluency, to that practice
       let link = null;
       const g = t.match(/words?\s*(\d+)\s*[–-]\s*(\d+)/i);
       if(g){ const a = +g[1], b = +g[2]; link = (a === 1 && b === 10) ? 'to2' : String(Math.floor((a - 1) / 5)); }
       else if(/all (the )?words|review all/i.test(t)) link = 'all';
       else if(/fluency/i.test(t)) link = 'flu';
-      return { i, time, text: t, link };
+      return { i, time, text: t, link, est };
     });
   }
   // tonight's record: { start, rows: { i: { s, e } } }
@@ -156,6 +157,20 @@
     steps.forEach(st => { const r = n.rows[st.i]; if(!r || !r.s) return; const d = (r.e || now()) - r.s; if(st.brk){ brk += d; nBrk++; } else work += d; });
     return { work, brk, nBrk };
   }
+  const planMin = steps => steps.reduce((a, st) => a + st.est, 0);
+  // the plan starts at the first time written in the list (4:00 pm), on today's date
+  function planStart(steps){
+    const first = steps.find(st => st.time);
+    const m = first && first.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+    const d = new Date(); let h = m ? +m[1] : 16, mi = m ? +m[2] : 0;
+    if(m && /pm/i.test(m[3] || 'pm') && h < 12) h += 12;
+    d.setHours(h, mi, 0, 0); return d.getTime();
+  }
+  // estimated time still needed: unfinished steps at their estimate, minus time already spent on the running one
+  function remainingMs(steps, n, t){
+    return steps.reduce((a, st) => { const r = n.rows[st.i] || {}; if(r.e) return a; const est = st.est * 60000; return a + (r.s ? Math.max(0, est - (t - r.s)) : est); }, 0);
+  }
+  const diffTxt = (ms) => { const m = Math.round(ms / 60000); return m === 0 ? 'right on time' : hm(Math.abs(ms)) + ' ' + (m > 0 ? 'over' : 'under'); };
   function breakLabel(r, t){
     const done = !!r.e, run = r.s && !r.e;
     const used = r.s ? (r.e || t) - r.s : 0, left = BREAK_MIN * 60000 - used, over = !!r.s && left < 0;
@@ -163,17 +178,21 @@
       : run ? (over ? `Break: ${mmss(-left)} over. Tap when it's over` : `Break: ${mmss(left)} left. Tap when it's over`) : `Break (${BREAK_MIN} min). Tap to start`;
     return { text, over };
   }
-  function actLabel(r, t){
+  function actLabel(r, t, est){
     const took = r.s ? (r.e || t) - r.s : 0;
-    return r.e ? `${clock(r.s)} to ${clock(r.e)}: took ${hm(took)}` : r.s ? `Started ${clock(r.s)}: ${mmss(took)} so far. Tap when done` : '';
+    return r.e ? `${clock(r.s)} to ${clock(r.e)}: took ${hm(took)} (${diffTxt(took - est * 60000)})`
+      : r.s ? `Started ${clock(r.s)}: ${mmss(took)} of ${est} min. Tap when done` : `Estimate: ${est} min`;
   }
   function summary(steps, n, t){
     const tasks = steps.filter(s => !s.brk), doneN = tasks.filter(s => n.rows[s.i] && n.rows[s.i].e).length, breaks = steps.length - tasks.length;
     const tt = totals(steps, n), allDone = tasks.length && doneN === tasks.length, end = allDone ? lastEnd(n) : t;
-    return n.start
-      ? `<span>Started<b>${clock(n.start)}</b></span><span>${allDone ? 'Finished' : 'Time so far'}<b>${allDone ? clock(end) + ' (' + hm(end - n.start) + ')' : hm(t - n.start)}</b></span>` +
-        `<span>Work time<b>${hm(tt.work)}</b></span><span>Break time<b>${hm(tt.brk)}</b> ${tt.nBrk} of ${breaks} breaks</span>`
-      : `<span>Steps<b>${tasks.length}</b></span><span>Breaks planned<b>${breaks} × ${BREAK_MIN} = ${hm(breaks * BREAK_MIN * 60000)}</b></span>`;
+    const plan = planMin(steps) * 60000, ps = planStart(steps);
+    const planLine = `<span>Plan: ${tasks.length} step${tasks.length === 1 ? '' : 's'} + ${breaks} break${breaks === 1 ? '' : 's'}<b>${hm(plan)}</b></span><span>Planned finish<b>${clock(ps + plan)}</b> if started at ${clock(ps)}</span>`;
+    if(!n.start) return planLine;
+    const proj = allDone ? end : t + remainingMs(steps, n, t);
+    return `<span>Started<b>${clock(n.start)}</b></span><span>${allDone ? 'Finished' : 'Time so far'}<b>${allDone ? clock(end) + ' (' + hm(end - n.start) + ')' : hm(t - n.start)}</b></span>` +
+      `<span>Work time<b>${hm(tt.work)}</b></span><span>Break time<b>${hm(tt.brk)}</b> ${tt.nBrk} of ${breaks} breaks</span>` +
+      `<span>${allDone ? 'Planned' : 'Planned finish'}<b>${allDone ? hm(plan) : clock(n.start + plan)}</b></span><span>${allDone ? 'Compared to plan' : 'Finish at this pace'}<b>${allDone ? diffTxt((end - n.start) - plan) : clock(proj)}</b></span>`;
   }
   // update only the running clocks, so taps aren't lost while the list redraws
   function tick(){
@@ -182,7 +201,7 @@
     $('clList').querySelectorAll('li.run').forEach(li => {
       const r = n.rows[+li.dataset.i]; if(!r) return;
       if(li.classList.contains('clBreak')){ const L = breakLabel(r, t); li.querySelector('.bt').textContent = L.text; li.classList.toggle('over', L.over); }
-      else { const a = li.querySelector('.act'); if(a) a.textContent = actLabel(r, t); }
+      else { const a = li.querySelector('.act'); const st = steps.find(x => x.i === +li.dataset.i); if(a && st) a.textContent = actLabel(r, t, st.est); }
     });
   }
   function render(){
@@ -205,7 +224,7 @@
         const L = breakLabel(r, t);
         return `<li class="clBreak${done ? ' done' : ''}${run ? ' run' : ''}${L.over && !done ? ' over' : ''}" data-i="${st.i}"><span class="bt">${L.text}</span></li>`;
       }
-      const act = actLabel(r, t);
+      const act = actLabel(r, t, st.est);
       return `<li class="clItem${done ? ' done' : ''}${run ? ' run' : ''}" data-i="${st.i}"><span class="box" data-box="1">${done ? '✓' : ''}</span>
           <span>${st.time ? `<span class="time">Plan: ${esc(st.time)}</span>` : ''}<span class="txt">${esc(st.text)}</span>${act ? `<span class="act">${act}</span>` : ''}</span>
           ${st.link ? (st.link === 'flu' ? `<span class="go"><button class="btn quiet" data-go="flu">Fluency</button></span>` : `<span class="go"><button class="btn quiet" data-go="spell" data-g="${st.link}">Spelling</button> <button class="btn quiet" data-go="flash" data-g="${st.link}">Cards</button></span>`) : ''}</li>`;
@@ -216,14 +235,14 @@
   }
   function saveHistory(steps, n){
     const s = store(), k = nightKey(), tt = totals(steps, n), end = lastEnd(n);
-    const rec = { k, day, date: todayKey(), start: n.start, end, work: tt.work, brk: tt.brk,
+    const rec = { k, day, date: todayKey(), start: n.start, end, work: tt.work, brk: tt.brk, plan: planMin(steps) * 60000,
       steps: steps.map(st => { const r = n.rows[st.i] || {}; return [st.brk ? 'Break' : st.text, r.s && r.e ? mins(r.e - r.s) : null]; }) };
     s.history = s.history.filter(h => h.k !== k); s.history.unshift(rec); s.history.splice(20); save();
   }
   function renderHistory(){
     const h = store().history;
     $('clHistWrap').hidden = !h.length;
-    $('clHist').innerHTML = h.map(r => `<tr><td>${new Date(r.date + 'T12:00:00').toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}</td><td>${clock(r.start)}</td><td>${clock(r.end)}</td><td>${hm(r.end - r.start)}</td><td>${hm(r.work)}</td><td>${hm(r.brk)}</td></tr>`).join('');
+    $('clHist').innerHTML = h.map(r => `<tr><td>${new Date(r.date + 'T12:00:00').toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' })}</td><td>${clock(r.start)}</td><td>${clock(r.end)}</td><td>${hm(r.end - r.start)}</td><td>${r.plan ? diffTxt((r.end - r.start) - r.plan) : ''}</td><td>${hm(r.work)}</td><td>${hm(r.brk)}</td></tr>`).join('');
   }
   // tap a step: start it (ending whatever was running), tap again: done, tap a done step: undo
   $('clList').addEventListener('click', e => {
